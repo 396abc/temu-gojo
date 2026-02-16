@@ -305,10 +305,11 @@ local function updatePosition(mainHead, offset)
     
     if spinSpeed > 0 then
         spinPhase = spinPhase + (spinSpeed * 0.05)
+        -- FIXED: Removed math.rad multiplication to maintain full spin speed
         bg.CFrame = bg.CFrame * CFrame.Angles(
-            math.rad(spinPhase * 30 * spinAxis.X),
-            math.rad(spinPhase * 30 * spinAxis.Y),
-            math.rad(spinPhase * 30 * spinAxis.Z)
+            spinPhase * 0.1 * spinAxis.X,
+            spinPhase * 0.1 * spinAxis.Y,
+            spinPhase * 0.1 * spinAxis.Z
         )
     end
 end
