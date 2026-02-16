@@ -122,9 +122,7 @@ local function playBlueLapseAnimation()
     
     print("[MAIN] Playing Blue Lapse animation")
     
-    -- Small delay for synchronization
-    task.wait(1)
-    
+    -- NO DELAY - Play animation immediately
     local char = localPlayer.Character
     if not char then 
         print("[ANIM] No character")
@@ -361,12 +359,16 @@ local function getTimeSinceStart()
 end
 
 -- ========== MAIN EXECUTION ==========
--- PLAY ANIMATION ON MAIN ACCOUNT ONLY
+-- PLAY ANIMATION ON MAIN ACCOUNT ONLY (NO DELAY)
 if myRole.role == "Main" then
     playBlueLapseAnimation()
     active = false
     return
 end
+
+-- ALT ACCOUNTS - ADD 0.7 SECOND DELAY BEFORE MOVEMENT
+print("[WAIT] Waiting 0.7s for animation to load...")
+task.wait(0.7)
 
 -- RIGHT SPINNER MOVEMENT LOGIC
 local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
@@ -392,6 +394,9 @@ if not myChar then print("[ERROR] Own char missing") return end
 
 startAntiFling()
 initFlight(getRoot(myChar))
+
+-- Reset moveStartTime AFTER the 0.7s delay to ensure proper timing
+moveStartTime = tick()
 
 -- BLUE LAPSE LOGIC
 -- Phase 1: Initial position (2 seconds)
