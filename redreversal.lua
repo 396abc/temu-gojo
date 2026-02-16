@@ -1,28 +1,31 @@
 --[[
-    Red Reversal - LeftSpinner exclusive
-    3 second spin then 300 stud dash
+    RED REVERSAL - For LeftSpinner only
+    Execute this on hiUnineo1 when performing Red Reversal
 ]]
-
-if _G.moveActive then return end
-_G.moveActive = true
-_G.currentMove = "RedReversal"
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
-local myRole = _G.ACCOUNT_ROLES[localPlayer.Name]
 
--- Verify role
-if myRole ~= "LeftSpinner" then
-    print("[RED] Not LeftSpinner, exiting")
-    _G.moveActive = false
+-- Get role from global config
+local myRole = _G.ACCOUNT_CONFIG and _G.ACCOUNT_CONFIG[localPlayer.Name]
+if not myRole then
+    print("[ERROR] No role defined for " .. localPlayer.Name)
     return
 end
 
+-- Only run if this is LeftSpinner
+if myRole.role ~= "LeftSpinner" then
+    print("[SKIP] Red Reversal is exclusive to LeftSpinner")
+    return
+end
+
+print("=== RED REVERSAL STARTED for " .. myRole.role .. " ===")
+
 -- State
-local bp = nil
-local bg = nil
+local active = true
+local bp, bg = nil, nil
 local spinPhase = 0
 local spinSpeed = 0
 local spinAxis = Vector3.new(0,1,0)
@@ -30,40 +33,44 @@ local currentOffset = Vector3.zero
 local frozenY = nil
 local moveStartTime = tick()
 
--- Get main player
-local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
-if not mainPlayer then 
-    print("[ERROR] Main not found")
-    _G.moveActive = false
-    return 
+-- Anti-fling
+_G.isAlreadyAntiFling = _G.isAlreadyAntiFling or false
+local antiFlingConn = nil
+
+-- Utility functions
+local function getRoot(char)
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 end
 
--- Wait for main character
-local mainChar = mainPlayer.Character
-for i = 1, 50 do
-    if mainChar then break end
-    task.wait(0.1)
-    mainChar = mainPlayer.Character
-end
-if not mainChar then 
-    print("[ERROR] Main char missing")
-    _G.moveActive = false
-    return 
+local function getHead(char)
+    if not char then return nil end
+    return char:FindFirstChild("Head") or getRoot(char)
 end
 
-local mainHead = _G.getHead(mainChar)
-
--- Get own character
-local myChar = localPlayer.Character
-for i = 1, 50 do
-    if myChar then break end
-    task.wait(0.1)
-    myChar = localPlayer.Character
+local function startAntiFling()
+    if _G.isAlreadyAntiFling then return end
+    _G.isAlreadyAntiFling = true
+    
+    antiFlingConn = RunService.Stepped:Connect(function()
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= localPlayer and player.Character then
+                for _, v in pairs(player.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
 end
-if not myChar then 
-    print("[ERROR] Own char missing")
-    _G.moveActive = false
-    return 
+
+local function stopAntiFling()
+    if antiFlingConn then
+        antiFlingConn:Disconnect()
+        antiFlingConn = nil
+    end
+    _G.isAlreadyAntiFling = false
 end
 
 local function initFlight(root)
@@ -93,17 +100,33 @@ local function initFlight(root)
     root.Anchored = false
 end
 
+local function cleanup()
+    if bp then pcall(function() bp:Destroy() end) bp = nil end
+    if bg then pcall(function() bg:Destroy() end) bg = nil end
+    
+    if localPlayer.Character then
+        local hum = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+            hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+            hum.Sit = false
+            hum.WalkSpeed = 16
+        end
+    end
+end
+
 local function setSpin(speed, axis)
     spinSpeed = speed
     spinAxis = axis or Vector3.new(0,1,0)
     spinPhase = 0
 end
 
-local function updatePosition(head, offset)
-    if not bp or not _G.moveActive then return end
+local function updatePosition(mainHead, offset)
+    if not bp or not active then return end
     
-    local headPos = head.Position
-    local headCF = head.CFrame
+    local headPos = mainHead.Position
+    local headCF = mainHead.CFrame
     
     if not frozenY then
         frozenY = headPos.Y
@@ -128,30 +151,41 @@ local function updatePosition(head, offset)
     end
 end
 
-local function cleanup()
-    if bp then pcall(function() bp:Destroy() end) bp = nil end
-    if bg then pcall(function() bg:Destroy() end) bg = nil end
-    
-    if myChar then
-        local hum = myChar:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.PlatformStand = false
-            hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
-        end
-    end
+local function getTimeSinceStart()
+    return tick() - moveStartTime
 end
 
--- Start
-_G.startAntiFling()
+-- MAIN EXECUTION
+local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
+if not mainPlayer then print("[ERROR] Main not found") return end
 
-local myRoot = _G.getRoot(myChar)
-initFlight(myRoot)
+local mainChar = mainPlayer.Character
+for _ = 1, 50 do
+    if mainChar then break end
+    task.wait(0.1)
+    mainChar = mainPlayer.Character
+end
+if not mainChar then print("[ERROR] Main char missing") return end
 
+local mainHead = getHead(mainChar)
+
+local myChar = localPlayer.Character
+for _ = 1, 50 do
+    if myChar then break end
+    task.wait(0.1)
+    myChar = localPlayer.Character
+end
+if not myChar then print("[ERROR] Own char missing") return end
+
+startAntiFling()
+initFlight(getRoot(myChar))
+
+-- RED REVERSAL LOGIC
 -- Phase 1: Spin in center for 3 seconds
 currentOffset = Vector3.new(0, 0, 5)
 setSpin(15, Vector3.new(1, 1, 0.8))
 
-while tick() - moveStartTime < 3 and _G.moveActive do
+while getTimeSinceStart() < 3 and active do
     updatePosition(mainHead, currentOffset)
     RunService.Heartbeat:Wait()
 end
@@ -161,8 +195,8 @@ setSpin(20, Vector3.new(1, 1, 0.8))
 local startOffset = currentOffset
 local targetOffset = Vector3.new(0, 0, 305)
 
-while tick() - moveStartTime < 4.8 and _G.moveActive do
-    local alpha = (tick() - moveStartTime - 3) / 1.8
+while getTimeSinceStart() < 4.8 and active do
+    local alpha = (getTimeSinceStart() - 3) / 1.8
     alpha = math.min(alpha, 1)
     alpha = alpha < 0.5 and 2 * alpha * alpha or 1 - math.pow(-2 * alpha + 2, 2) / 2
     currentOffset = startOffset:Lerp(targetOffset, alpha)
@@ -174,11 +208,11 @@ end
 setSpin(0)
 cleanup()
 
-if myRoot then
-    myRoot.CFrame = CFrame.new(0, 1000, 0)
+local root = getRoot(myChar)
+if root then
+    root.CFrame = CFrame.new(0, 1000, 0)
 end
 
-_G.stopAntiFling()
-_G.moveActive = false
-
-print("[RED REVERSAL] Complete")
+stopAntiFling()
+active = false
+print("[DONE] Red Reversal finished")
