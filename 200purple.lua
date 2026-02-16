@@ -115,9 +115,7 @@ local function playPurple200Animation()
     
     print("[MAIN] Playing 200% Purple animation at 0.4x speed")
     
-    -- Small delay for synchronization
-    task.wait(1)
-    
+    -- NO DELAY - Play animation immediately
     local char = localPlayer.Character
     if not char then 
         print("[ANIM] No character")
@@ -386,16 +384,23 @@ if not myChar then
     return 
 end
 
--- PLAY ANIMATION ON MAIN ACCOUNT ONLY
+-- PLAY ANIMATION ON MAIN ACCOUNT ONLY (NO DELAY)
 if myRole.role == "Main" then
     playPurple200Animation()
     active = false
     return
 end
 
+-- ALT ACCOUNTS - ADD 0.7 SECOND DELAY BEFORE MOVEMENT
+print("[WAIT] Waiting 0.7s for animation to load...")
+task.wait(0.7)
+
 -- ALT ACCOUNTS MOVEMENT LOGIC
 initFlight(getRoot(myChar))
 startAntiFling()
+
+-- Reset moveStartTime AFTER the 0.7s delay to ensure proper timing
+moveStartTime = tick()
 
 -- LEFT SPINNER (Front Left)
 if myRole.role == "LeftSpinner" then
@@ -501,7 +506,7 @@ end
 if myRole.role == "BackFinalAppear" then
     enableNoclip()
     
-    -- Wait for Phase 1
+    -- Wait for Phase 1 (accounting for 0.7s delay)
     while getTimeSinceStart() < 3.5 and active do
         RunService.Heartbeat:Wait()
     end
@@ -579,7 +584,7 @@ end
 if myRole.role == "FinalAppear" then
     enableNoclip()
     
-    -- Wait for Phase 1
+    -- Wait for Phase 1 (accounting for 0.7s delay)
     while getTimeSinceStart() < 3.5 and active do
         RunService.Heartbeat:Wait()
     end
