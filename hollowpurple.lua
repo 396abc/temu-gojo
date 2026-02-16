@@ -121,9 +121,7 @@ local function playMainAnimation()
     
     print("[MAIN] Playing Hollow Purple animation")
     
-    -- Small delay for synchronization
-    task.wait(1)
-    
+    -- NO DELAY - Play animation immediately
     local char = localPlayer.Character
     if not char then 
         print("[ANIM] No character")
@@ -359,12 +357,16 @@ local function getTimeSinceStart()
 end
 
 -- ========== MAIN EXECUTION ==========
--- PLAY ANIMATION ON MAIN ACCOUNT ONLY
+-- PLAY ANIMATION ON MAIN ACCOUNT ONLY (NO DELAY)
 if myRole.role == "Main" then
     playMainAnimation()
     active = false
     return
 end
+
+-- ALT ACCOUNTS - ADD 0.7 SECOND DELAY BEFORE MOVEMENT
+print("[WAIT] Waiting 0.7s for animation to load...")
+task.wait(0.7)
 
 -- ALT ACCOUNTS MOVEMENT LOGIC
 local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
@@ -390,6 +392,9 @@ if not myChar then print("[ERROR] Own char missing") return end
 
 startAntiFling()
 initFlight(getRoot(myChar))
+
+-- Reset moveStartTime AFTER the 0.7s delay to ensure proper timing
+moveStartTime = tick()
 
 -- ROLE-SPECIFIC LOGIC
 if myRole.role == "LeftSpinner" or myRole.role == "RightSpinner" then
@@ -432,7 +437,7 @@ if myRole.role == "LeftSpinner" or myRole.role == "RightSpinner" then
 elseif myRole.role == "FinalAppear" then
     enableNoclip()
     
-    -- Wait for Phase 1-2
+    -- Wait for Phase 1-2 (accounting for the 0.7s delay)
     while getTimeSinceStart() < 4.5 and active do
         RunService.Heartbeat:Wait()
     end
