@@ -1,6 +1,7 @@
 --[[
     200% PURPLE - For all 6 alt accounts
     Execute this on hiUnineo1-6 when performing 200% Purple
+    Animation only plays on main account at 0.4x speed
 ]]
 
 local Players = game:GetService("Players")
@@ -12,12 +13,6 @@ local localPlayer = Players.LocalPlayer
 local myRole = _G.ACCOUNT_CONFIG and _G.ACCOUNT_CONFIG[localPlayer.Name]
 if not myRole then
     print("[ERROR] No role defined for " .. localPlayer.Name)
-    return
-end
-
--- Skip if main account
-if myRole.role == "Main" then
-    print("[SKIP] Main account handles animation only")
     return
 end
 
@@ -33,27 +28,216 @@ local currentOffset = Vector3.zero
 local frozenY = nil
 local moveStartTime = tick()
 
+-- Animation state (only used for main account)
+local animTrack = nil
+local blockAnimConn = nil
+local animationPlaying = false
+local animHeartbeatConn = nil
+
 -- Anti-fling
 _G.isAlreadyAntiFling = _G.isAlreadyAntiFling or false
 local antiFlingConn = nil
 
 -- Noclip for FinalAppear roles
 local Noclipping = nil
+local noclipActive = false
 
--- Utility functions
-local function getRoot(char)
-    if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+-- ========== ANIMATION FUNCTIONS (Main account only) ==========
+local function blockOtherAnimations(humanoid)
+    if blockAnimConn then
+        blockAnimConn:Disconnect()
+        blockAnimConn = nil
+    end
+    
+    animationPlaying = true
+    
+    blockAnimConn = humanoid.AnimationPlayed:Connect(function(playedTrack)
+        if playedTrack ~= animTrack then
+            pcall(function()
+                playedTrack:Stop()
+            end)
+        end
+    end)
+    
+    local animator = humanoid:FindFirstChildOfClass("Animator")
+    if animator then
+        for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+            if track ~= animTrack then
+                pcall(function()
+                    track:Stop()
+                end)
+            end
+        end
+    end
 end
 
-local function getHead(char)
-    if not char then return nil end
-    return char:FindFirstChild("Head") or getRoot(char)
+local function unblockAnimations(humanoid)
+    if blockAnimConn then
+        blockAnimConn:Disconnect()
+        blockAnimConn = nil
+    end
+    
+    if animHeartbeatConn then
+        animHeartbeatConn:Disconnect()
+        animHeartbeatConn = nil
+    end
+    
+    animationPlaying = false
+end
+
+local function cleanupAnimation()
+    if blockAnimConn then
+        blockAnimConn:Disconnect()
+        blockAnimConn = nil
+    end
+    
+    if animHeartbeatConn then
+        animHeartbeatConn:Disconnect()
+        animHeartbeatConn = nil
+    end
+    
+    if animTrack then
+        pcall(function()
+            if animTrack.IsPlaying then
+                animTrack:Stop()
+            end
+            animTrack:Destroy()
+        end)
+        animTrack = nil
+    end
+    
+    animationPlaying = false
+end
+
+local function playPurple200Animation()
+    -- ONLY play if this is the main account
+    if myRole.role ~= "Main" then return false end
+    
+    print("[MAIN] Playing 200% Purple animation at 0.4x speed")
+    
+    -- Small delay for synchronization
+    task.wait(1)
+    
+    local char = localPlayer.Character
+    if not char then 
+        print("[ANIM] No character")
+        return false
+    end
+    
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then 
+        print("[ANIM] No humanoid")
+        return false
+    end
+    
+    -- Clean up any existing animation
+    cleanupAnimation()
+    
+    -- Block all other animations
+    blockOtherAnimations(humanoid)
+    
+    -- Load animation
+    local anim = Instance.new("Animation")
+    anim.AnimationId = _G.ANIMATION_ID
+    
+    local success, track = pcall(function()
+        return humanoid:LoadAnimation(anim)
+    end)
+    
+    if not success or not track then
+        print("[ANIM] Failed to load animation")
+        unblockAnimations(humanoid)
+        return false
+    end
+    
+    animTrack = track
+    animTrack.Looped = false
+    
+    -- Stop any other tracks
+    local animator = humanoid:FindFirstChildOfClass("Animator")
+    if animator then
+        for _, otherTrack in pairs(animator:GetPlayingAnimationTracks()) do
+            if otherTrack ~= animTrack then
+                pcall(function() otherTrack:Stop() end)
+            end
+        end
+    end
+    
+    -- Start playing
+    pcall(function()
+        animTrack:Play()
+        animTrack.TimePosition = 0
+        animTrack:AdjustSpeed(_G.PURPLE_200_SPEED)
+    end)
+    
+    print("[MAIN] Animation started at " .. _G.PURPLE_200_SPEED .. "x speed")
+    
+    -- Monitor animation speed
+    animHeartbeatConn = RunService.Heartbeat:Connect(function()
+        if not animTrack or not animTrack.IsPlaying then return end
+        
+        pcall(function()
+            if math.abs(animTrack.Speed - _G.PURPLE_200_SPEED) > 0.01 then
+                animTrack:AdjustSpeed(_G.PURPLE_200_SPEED)
+            end
+        end)
+    end)
+    
+    -- Auto-unblock after animation duration
+    task.spawn(function()
+        task.wait(15) -- 200% Purple duration
+        if animationPlaying and humanoid and humanoid.Parent then
+            unblockAnimations(humanoid)
+            print("[MAIN] Animation completed, unblocked")
+        end
+    end)
+    
+    return true
+end
+
+-- ========== UTILITY FUNCTIONS ==========
+local function enableNoclip()
+    if myRole.role ~= "FinalAppear" and myRole.role ~= "BackFinalAppear" then return end
+    
+    if noclipActive then return end
+    noclipActive = true
+    
+    if Noclipping then
+        Noclipping:Disconnect()
+        Noclipping = nil
+    end
+    
+    Noclipping = RunService.Stepped:Connect(function()
+        if not noclipActive then return end
+        if localPlayer.Character then
+            for _, child in pairs(localPlayer.Character:GetDescendants()) do
+                if child:IsA("BasePart") and child.CanCollide == true then
+                    child.CanCollide = false
+                end
+            end
+        end
+    end)
+    print("[" .. myRole.role .. "] Noclip Enabled")
+end
+
+local function disableNoclip()
+    if myRole.role ~= "FinalAppear" and myRole.role ~= "BackFinalAppear" then return end
+    
+    if Noclipping then
+        Noclipping:Disconnect()
+        Noclipping = nil
+    end
+    noclipActive = false
+    print("[" .. myRole.role .. "] Noclip Disabled")
 end
 
 local function startAntiFling()
     if _G.isAlreadyAntiFling then return end
     _G.isAlreadyAntiFling = true
+    
+    if antiFlingConn then
+        antiFlingConn:Disconnect()
+    end
     
     antiFlingConn = RunService.Stepped:Connect(function()
         for _, player in pairs(Players:GetPlayers()) do
@@ -76,25 +260,14 @@ local function stopAntiFling()
     _G.isAlreadyAntiFling = false
 end
 
-local function enableNoclip()
-    if Noclipping then return end
-    
-    Noclipping = RunService.Stepped:Connect(function()
-        if localPlayer.Character then
-            for _, child in pairs(localPlayer.Character:GetDescendants()) do
-                if child:IsA("BasePart") and child.CanCollide == true then
-                    child.CanCollide = false
-                end
-            end
-        end
-    end)
+local function getRoot(char)
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 end
 
-local function disableNoclip()
-    if Noclipping then
-        Noclipping:Disconnect()
-        Noclipping = nil
-    end
+local function getHead(char)
+    if not char then return nil end
+    return char:FindFirstChild("Head") or getRoot(char)
 end
 
 local function initFlight(root)
@@ -179,9 +352,13 @@ local function getTimeSinceStart()
     return tick() - moveStartTime
 end
 
--- MAIN EXECUTION
+-- ========== MAIN EXECUTION ==========
 local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
-if not mainPlayer then print("[ERROR] Main not found") return end
+if not mainPlayer then 
+    print("[ERROR] Main not found")
+    active = false 
+    return 
+end
 
 local mainChar = mainPlayer.Character
 for _ = 1, 50 do
@@ -189,7 +366,11 @@ for _ = 1, 50 do
     task.wait(0.1)
     mainChar = mainPlayer.Character
 end
-if not mainChar then print("[ERROR] Main char missing") return end
+if not mainChar then 
+    print("[ERROR] Main char missing") 
+    active = false 
+    return 
+end
 
 local mainHead = getHead(mainChar)
 
@@ -199,14 +380,22 @@ for _ = 1, 50 do
     task.wait(0.1)
     myChar = localPlayer.Character
 end
-if not myChar then print("[ERROR] Own char missing") return end
+if not myChar then 
+    print("[ERROR] Own char missing") 
+    active = false 
+    return 
+end
 
+-- PLAY ANIMATION ON MAIN ACCOUNT ONLY
+if myRole.role == "Main" then
+    playPurple200Animation()
+    active = false
+    return
+end
+
+-- ALT ACCOUNTS MOVEMENT LOGIC
 initFlight(getRoot(myChar))
 startAntiFling()
-
--- ============================================
--- ROLE-SPECIFIC LOGIC
--- ============================================
 
 -- LEFT SPINNER (Front Left)
 if myRole.role == "LeftSpinner" then
