@@ -1,126 +1,88 @@
 --[[
-    200% Purple - ALL 6 ACCOUNTS COMBINE
-    Back spinners merge, final accounts rise and dash
+    200% PURPLE - For all 6 alt accounts
+    Execute this on hiUnineo1-6 when performing 200% Purple
 ]]
-
-if _G.moveActive then return end
-_G.moveActive = true
-_G.currentMove = "200PercentPurple"
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
-local myRole = _G.ACCOUNT_ROLES[localPlayer.Name]
+
+-- Get role from global config
+local myRole = _G.ACCOUNT_CONFIG and _G.ACCOUNT_CONFIG[localPlayer.Name]
+if not myRole then
+    print("[ERROR] No role defined for " .. localPlayer.Name)
+    return
+end
+
+-- Skip if main account
+if myRole.role == "Main" then
+    print("[SKIP] Main account handles animation only")
+    return
+end
+
+print("=== 200% PURPLE STARTED for " .. myRole.role .. " ===")
 
 -- State
-local bp = nil
-local bg = nil
+local active = true
+local bp, bg = nil, nil
 local spinPhase = 0
 local spinSpeed = 0
 local spinAxis = Vector3.new(0,1,0)
 local currentOffset = Vector3.zero
 local frozenY = nil
 local moveStartTime = tick()
-local noclipConn = nil
 
--- Get main player
-local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
-if not mainPlayer then 
-    print("[ERROR] Main not found")
-    _G.moveActive = false
-    return 
+-- Anti-fling
+_G.isAlreadyAntiFling = _G.isAlreadyAntiFling or false
+local antiFlingConn = nil
+
+-- Noclip for FinalAppear roles
+local Noclipping = nil
+
+-- Utility functions
+local function getRoot(char)
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 end
 
--- Wait for main character
-local mainChar = mainPlayer.Character
-for i = 1, 50 do
-    if mainChar then break end
-    task.wait(0.1)
-    mainChar = mainPlayer.Character
-end
-if not mainChar then 
-    print("[ERROR] Main char missing")
-    _G.moveActive = false
-    return 
+local function getHead(char)
+    if not char then return nil end
+    return char:FindFirstChild("Head") or getRoot(char)
 end
 
-local mainHead = _G.getHead(mainChar)
-
--- Get own character
-local myChar = localPlayer.Character
-for i = 1, 50 do
-    if myChar then break end
-    task.wait(0.1)
-    myChar = localPlayer.Character
-end
-if not myChar then 
-    print("[ERROR] Own char missing")
-    _G.moveActive = false
-    return 
-end
-
--- Animation blocking for main
-local animTrack = nil
-local blockAnimConn = nil
-local animPlaying = false
-
-local function blockOtherAnimations(humanoid)
-    if blockAnimConn then
-        blockAnimConn:Disconnect()
-        blockAnimConn = nil
-    end
+local function startAntiFling()
+    if _G.isAlreadyAntiFling then return end
+    _G.isAlreadyAntiFling = true
     
-    animPlaying = true
-    
-    blockAnimConn = humanoid.AnimationPlayed:Connect(function(playedTrack)
-        if playedTrack ~= animTrack then
-            pcall(function() playedTrack:Stop() end)
+    antiFlingConn = RunService.Stepped:Connect(function()
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= localPlayer and player.Character then
+                for _, v in pairs(player.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            end
         end
     end)
-    
-    local animator = humanoid:FindFirstChildOfClass("Animator")
-    if animator then
-        for _, track in pairs(animator:GetPlayingAnimationTracks()) do
-            if track ~= animTrack then
-                pcall(function() track:Stop() end)
-            end
-        end
-    end
 end
 
-_G.unblockAnimations = function()
-    if blockAnimConn then
-        blockAnimConn:Disconnect()
-        blockAnimConn = nil
+local function stopAntiFling()
+    if antiFlingConn then
+        antiFlingConn:Disconnect()
+        antiFlingConn = nil
     end
-    animPlaying = false
+    _G.isAlreadyAntiFling = false
 end
 
-local function cleanupAnimation()
-    _G.unblockAnimations()
-    if animTrack then
-        pcall(function()
-            if animTrack.IsPlaying then
-                animTrack:Stop()
-            end
-            animTrack:Destroy()
-        end)
-        animTrack = nil
-    end
-end
-
--- Noclip for final accounts
 local function enableNoclip()
-    if noclipConn then
-        noclipConn:Disconnect()
-        noclipConn = nil
-    end
+    if Noclipping then return end
     
-    noclipConn = RunService.Stepped:Connect(function()
-        if myChar then
-            for _, child in pairs(myChar:GetDescendants()) do
-                if child:IsA("BasePart") and child.CanCollide then
+    Noclipping = RunService.Stepped:Connect(function()
+        if localPlayer.Character then
+            for _, child in pairs(localPlayer.Character:GetDescendants()) do
+                if child:IsA("BasePart") and child.CanCollide == true then
                     child.CanCollide = false
                 end
             end
@@ -129,9 +91,9 @@ local function enableNoclip()
 end
 
 local function disableNoclip()
-    if noclipConn then
-        noclipConn:Disconnect()
-        noclipConn = nil
+    if Noclipping then
+        Noclipping:Disconnect()
+        Noclipping = nil
     end
 end
 
@@ -162,17 +124,33 @@ local function initFlight(root)
     root.Anchored = false
 end
 
+local function cleanup()
+    if bp then pcall(function() bp:Destroy() end) bp = nil end
+    if bg then pcall(function() bg:Destroy() end) bg = nil end
+    
+    if localPlayer.Character then
+        local hum = localPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+            hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+            hum.Sit = false
+            hum.WalkSpeed = 16
+        end
+    end
+end
+
 local function setSpin(speed, axis)
     spinSpeed = speed
     spinAxis = axis or Vector3.new(0,1,0)
     spinPhase = 0
 end
 
-local function updatePosition(head, offset)
-    if not bp or not _G.moveActive then return end
+local function updatePosition(mainHead, offset)
+    if not bp or not active then return end
     
-    local headPos = head.Position
-    local headCF = head.CFrame
+    local headPos = mainHead.Position
+    local headCF = mainHead.CFrame
     
     if not frozenY then
         frozenY = headPos.Y
@@ -197,146 +175,149 @@ local function updatePosition(head, offset)
     end
 end
 
-local function cleanup()
-    if bp then pcall(function() bp:Destroy() end) bp = nil end
-    if bg then pcall(function() bg:Destroy() end) bg = nil end
-    
-    if myChar then
-        local hum = myChar:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.PlatformStand = false
-            hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
-        end
-    end
+local function getTimeSinceStart()
+    return tick() - moveStartTime
 end
 
--- MAIN ACCOUNT
-if myRole == "Main" then
-    print("[MAIN] Playing Hollow Purple at 0.4x speed")
-    
-    local humanoid = myChar:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        cleanupAnimation()
-        blockOtherAnimations(humanoid)
-        
-        local anim = Instance.new("Animation")
-        anim.AnimationId = _G.ANIMATION_ID
-        
-        local success, track = pcall(function()
-            return humanoid:LoadAnimation(anim)
-        end)
-        
-        if success and track then
-            animTrack = track
-            animTrack.Looped = false
-            animTrack:Play()
-            animTrack:AdjustSpeed(_G.PURPLE_200_SPEED)
-        end
-    end
-    
-    task.wait(12)
-    
-    _G.unblockAnimations()
-    cleanupAnimation()
-    _G.moveActive = false
-    return
-end
+-- MAIN EXECUTION
+local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
+if not mainPlayer then print("[ERROR] Main not found") return end
 
--- Start anti-fling for alts
-_G.startAntiFling()
-local myRoot = _G.getRoot(myChar)
-initFlight(myRoot)
+local mainChar = mainPlayer.Character
+for _ = 1, 50 do
+    if mainChar then break end
+    task.wait(0.1)
+    mainChar = mainPlayer.Character
+end
+if not mainChar then print("[ERROR] Main char missing") return end
+
+local mainHead = getHead(mainChar)
+
+local myChar = localPlayer.Character
+for _ = 1, 50 do
+    if myChar then break end
+    task.wait(0.1)
+    myChar = localPlayer.Character
+end
+if not myChar then print("[ERROR] Own char missing") return end
+
+initFlight(getRoot(myChar))
+startAntiFling()
+
+-- ============================================
+-- ROLE-SPECIFIC LOGIC
+-- ============================================
 
 -- LEFT SPINNER (Front Left)
-if myRole == "LeftSpinner" then
+if myRole.role == "LeftSpinner" then
+    print("[LEFTSPINNER] Merging to center front")
     currentOffset = Vector3.new(-5, 0, 2)
     setSpin(20, Vector3.new(1, 1, 0.8))
     
-    while tick() - moveStartTime < 3 and _G.moveActive do
-        local progress = (tick() - moveStartTime) / 3
+    while getTimeSinceStart() < 3 and active do
+        local progress = getTimeSinceStart() / 3
         local currentX = -5 + (5 * math.min(progress, 1))
         currentOffset = Vector3.new(currentX, 0, 2)
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
+    print("[LEFTSPINNER] Disappearing")
     cleanup()
-    if myRoot then myRoot.CFrame = CFrame.new(0, 1000, 0) end
-    _G.stopAntiFling()
-    _G.moveActive = false
+    
+    local root = getRoot(myChar)
+    if root then
+        root.CFrame = CFrame.new(0, 1000, 0)
+    end
+    active = false
     return
 end
 
 -- RIGHT SPINNER (Front Right)
-if myRole == "RightSpinner" then
+if myRole.role == "RightSpinner" then
+    print("[RIGHTSPINNER] Merging to center front")
     currentOffset = Vector3.new(5, 0, 2)
     setSpin(20, Vector3.new(1, 1, 0.8))
     
-    while tick() - moveStartTime < 3 and _G.moveActive do
-        local progress = (tick() - moveStartTime) / 3
+    while getTimeSinceStart() < 3 and active do
+        local progress = getTimeSinceStart() / 3
         local currentX = 5 - (5 * math.min(progress, 1))
         currentOffset = Vector3.new(currentX, 0, 2)
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
+    print("[RIGHTSPINNER] Disappearing")
     cleanup()
-    if myRoot then myRoot.CFrame = CFrame.new(0, 1000, 0) end
-    _G.stopAntiFling()
-    _G.moveActive = false
+    
+    local root = getRoot(myChar)
+    if root then
+        root.CFrame = CFrame.new(0, 1000, 0)
+    end
+    active = false
     return
 end
 
 -- BACK LEFT SPINNER
-if myRole == "BackLeftSpinner" then
+if myRole.role == "BackLeftSpinner" then
+    print("[BACKLEFT] Merging to center back")
     currentOffset = Vector3.new(-4, 0, -8)
     setSpin(20, Vector3.new(1, 1, 0.5))
     
-    while tick() - moveStartTime < 3 and _G.moveActive do
-        local progress = (tick() - moveStartTime) / 3
+    while getTimeSinceStart() < 3 and active do
+        local progress = getTimeSinceStart() / 3
         local currentX = -4 + (4 * math.min(progress, 1))
         currentOffset = Vector3.new(currentX, 0, -8)
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
+    print("[BACKLEFT] Disappearing")
     cleanup()
-    if myRoot then myRoot.CFrame = CFrame.new(0, 1000, 0) end
-    _G.stopAntiFling()
-    _G.moveActive = false
+    
+    local root = getRoot(myChar)
+    if root then
+        root.CFrame = CFrame.new(0, 1000, 0)
+    end
+    active = false
     return
 end
 
 -- BACK RIGHT SPINNER
-if myRole == "BackRightSpinner" then
+if myRole.role == "BackRightSpinner" then
+    print("[BACKRIGHT] Merging to center back")
     currentOffset = Vector3.new(4, 0, -8)
     setSpin(20, Vector3.new(1, 1, 0.5))
     
-    while tick() - moveStartTime < 3 and _G.moveActive do
-        local progress = (tick() - moveStartTime) / 3
+    while getTimeSinceStart() < 3 and active do
+        local progress = getTimeSinceStart() / 3
         local currentX = 4 - (4 * math.min(progress, 1))
         currentOffset = Vector3.new(currentX, 0, -8)
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
+    print("[BACKRIGHT] Disappearing")
     cleanup()
-    if myRoot then myRoot.CFrame = CFrame.new(0, 1000, 0) end
-    _G.stopAntiFling()
-    _G.moveActive = false
+    
+    local root = getRoot(myChar)
+    if root then
+        root.CFrame = CFrame.new(0, 1000, 0)
+    end
+    active = false
     return
 end
 
 -- BACK FINAL APPEAR (Becomes RIGHT FRONT)
-if myRole == "BackFinalAppear" then
+if myRole.role == "BackFinalAppear" then
     enableNoclip()
     
     -- Wait for Phase 1
-    while tick() - moveStartTime < 3.5 and _G.moveActive do
+    while getTimeSinceStart() < 3.5 and active do
         RunService.Heartbeat:Wait()
     end
     
-    if not _G.moveActive then return end
+    if not active then return end
     
     currentOffset = Vector3.new(0, 0, -8)
     setSpin(20, Vector3.new(0.5, 1, 0.5))
@@ -344,22 +325,22 @@ if myRole == "BackFinalAppear" then
     -- Phase 3: Rise up
     local startY = frozenY or mainHead.Position.Y
     
-    while tick() - moveStartTime < 5 and _G.moveActive do
-        local riseProgress = (tick() - moveStartTime - 3.5) / 1.5
+    while getTimeSinceStart() < 5 and active do
+        local riseProgress = (getTimeSinceStart() - 3.5) / 1.5
         riseProgress = math.min(riseProgress, 1)
         frozenY = startY + (riseProgress * 10)
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
-    if not _G.moveActive then return end
+    if not active then return end
     
     -- Phase 4: Tween to RIGHT FRONT
     local startOffset = currentOffset
     local targetOffset = Vector3.new(3, 0, 2)
     
-    while tick() - moveStartTime < 7 and _G.moveActive do
-        local tweenProgress = (tick() - moveStartTime - 5) / 2
+    while getTimeSinceStart() < 7 and active do
+        local tweenProgress = (getTimeSinceStart() - 5) / 2
         tweenProgress = math.min(tweenProgress, 1)
         tweenProgress = tweenProgress < 0.5 and 2 * tweenProgress * tweenProgress or 1 - math.pow(-2 * tweenProgress + 2, 2) / 2
         
@@ -369,25 +350,25 @@ if myRole == "BackFinalAppear" then
         RunService.Heartbeat:Wait()
     end
     
-    if not _G.moveActive then return end
+    if not active then return end
     
     -- Phase 5: Spin
     setSpin(30, Vector3.new(1, 1, 1))
     
-    while tick() - moveStartTime < 9 and _G.moveActive do
+    while getTimeSinceStart() < 9 and active do
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
-    if not _G.moveActive then return end
+    if not active then return end
     
     -- Phase 6: Dash
     setSpin(35, Vector3.new(1, 1, 1))
     local startDashOffset = currentOffset
     local targetDashOffset = Vector3.new(3, 0, 302)
     
-    while tick() - moveStartTime < 11 and _G.moveActive do
-        local dashProgress = (tick() - moveStartTime - 9) / 2
+    while getTimeSinceStart() < 11 and active do
+        local dashProgress = (getTimeSinceStart() - 9) / 2
         dashProgress = math.min(dashProgress, 1)
         dashProgress = dashProgress < 0.5 and 2 * dashProgress * dashProgress or 1 - math.pow(-2 * dashProgress + 2, 2) / 2
         
@@ -396,29 +377,25 @@ if myRole == "BackFinalAppear" then
         RunService.Heartbeat:Wait()
     end
     
+    print("[BACKFINAL] Move complete")
     setSpin(0)
     cleanup()
     disableNoclip()
-    
-    if myRoot then
-        myRoot.CFrame = CFrame.new(0, 1000, 0)
-    end
-    
-    _G.stopAntiFling()
-    _G.moveActive = false
+    stopAntiFling()
+    active = false
     return
 end
 
 -- FINAL APPEAR (Becomes LEFT FRONT)
-if myRole == "FinalAppear" then
+if myRole.role == "FinalAppear" then
     enableNoclip()
     
     -- Wait for Phase 1
-    while tick() - moveStartTime < 3.5 and _G.moveActive do
+    while getTimeSinceStart() < 3.5 and active do
         RunService.Heartbeat:Wait()
     end
     
-    if not _G.moveActive then return end
+    if not active then return end
     
     currentOffset = Vector3.new(0, 0, 2)
     setSpin(20, Vector3.new(0.5, 1, 0.5))
@@ -426,22 +403,22 @@ if myRole == "FinalAppear" then
     -- Phase 3: Rise up
     local startY = frozenY or mainHead.Position.Y
     
-    while tick() - moveStartTime < 5 and _G.moveActive do
-        local riseProgress = (tick() - moveStartTime - 3.5) / 1.5
+    while getTimeSinceStart() < 5 and active do
+        local riseProgress = (getTimeSinceStart() - 3.5) / 1.5
         riseProgress = math.min(riseProgress, 1)
         frozenY = startY + (riseProgress * 10)
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
-    if not _G.moveActive then return end
+    if not active then return end
     
     -- Phase 4: Tween to LEFT FRONT
     local startOffset = currentOffset
     local targetOffset = Vector3.new(-3, 0, 2)
     
-    while tick() - moveStartTime < 7 and _G.moveActive do
-        local tweenProgress = (tick() - moveStartTime - 5) / 2
+    while getTimeSinceStart() < 7 and active do
+        local tweenProgress = (getTimeSinceStart() - 5) / 2
         tweenProgress = math.min(tweenProgress, 1)
         tweenProgress = tweenProgress < 0.5 and 2 * tweenProgress * tweenProgress or 1 - math.pow(-2 * tweenProgress + 2, 2) / 2
         
@@ -451,25 +428,25 @@ if myRole == "FinalAppear" then
         RunService.Heartbeat:Wait()
     end
     
-    if not _G.moveActive then return end
+    if not active then return end
     
     -- Phase 5: Spin
     setSpin(30, Vector3.new(1, 1, 1))
     
-    while tick() - moveStartTime < 9 and _G.moveActive do
+    while getTimeSinceStart() < 9 and active do
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
-    if not _G.moveActive then return end
+    if not active then return end
     
     -- Phase 6: Dash
     setSpin(35, Vector3.new(1, 1, 1))
     local startDashOffset = currentOffset
     local targetDashOffset = Vector3.new(-3, 0, 302)
     
-    while tick() - moveStartTime < 11 and _G.moveActive do
-        local dashProgress = (tick() - moveStartTime - 9) / 2
+    while getTimeSinceStart() < 11 and active do
+        local dashProgress = (getTimeSinceStart() - 9) / 2
         dashProgress = math.min(dashProgress, 1)
         dashProgress = dashProgress < 0.5 and 2 * dashProgress * dashProgress or 1 - math.pow(-2 * dashProgress + 2, 2) / 2
         
@@ -478,17 +455,14 @@ if myRole == "FinalAppear" then
         RunService.Heartbeat:Wait()
     end
     
+    print("[FINAL] Move complete")
     setSpin(0)
     cleanup()
     disableNoclip()
-    
-    if myRoot then
-        myRoot.CFrame = CFrame.new(0, 1000, 0)
-    end
-    
-    _G.stopAntiFling()
-    _G.moveActive = false
+    stopAntiFling()
+    active = false
     return
 end
 
-print("[200% PURPLE] " .. myRole .. " complete")
+print("[WARN] " .. myRole.role .. " not handled in 200% Purple")
+active = false
