@@ -1,175 +1,221 @@
 --[[
-    Temu-Gojo Main Controller
-    Global configuration for all accounts
+    Temu Gojo - Main Controller
+    Executes on all accounts, creates GUI only on main
+    Uses global variables for role detection
 ]]
 
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
 local localPlayer = Players.LocalPlayer
 
--- GLOBAL CONFIGURATION - Change these as needed
+-- GLOBAL CONFIGURATION (can be changed at any time)
 _G.MAIN_USER_NAME = "hiUnineo"  -- Change this to your main account
 
-_G.ACCOUNT_CONFIG = {
-    ["hiUnineo"] = { role = "Main", order = 0 },
-    ["hiUnineo1"] = { role = "LeftSpinner", order = 1 },
-    ["hiUnineo2"] = { role = "RightSpinner", order = 2 },
-    ["hiUnineo3"] = { role = "FinalAppear", order = 3 },
-    ["HiUnineo4"] = { role = "BackLeftSpinner", order = 4 },
-    ["hiUnineo5"] = { role = "BackRightSpinner", order = 5 },
-    ["hiUnineo6"] = { role = "BackFinalAppear", order = 6 }
+_G.ACCOUNT_ROLES = {
+    ["hiUnineo"] = "Main",
+    ["hiUnineo1"] = "LeftSpinner",
+    ["hiUnineo2"] = "RightSpinner", 
+    ["hiUnineo3"] = "FinalAppear",
+    ["HiUnineo4"] = "BackLeftSpinner",  -- Note capital H
+    ["hiUnineo5"] = "BackRightSpinner",
+    ["hiUnineo6"] = "BackFinalAppear"
 }
 
--- Base repository URL
-_G.BASE_URL = "https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/"
+-- GLOBAL ROLE VARIABLES (for other scripts to reference)
+_G.LeftSpinner = nil
+_G.RightSpinner = nil
+_G.FinalAppear = nil
+_G.BackLeftSpinner = nil
+_G.BackRightSpinner = nil
+_G.BackFinalAppear = nil
+_G.Main = nil
 
--- Role global variables for easy access
-for accountName, config in pairs(_G.ACCOUNT_CONFIG) do
-    _G[config.role] = config.role
-end
-
--- Animation constants
-_G.ANIMATION_ID = "rbxassetid://109504559118350"
-_G.RED_REVERSAL_ANIMATION_ID = "rbxassetid://117285946325983"
-_G.BLUE_LAPSE_ANIMATION_ID = "rbxassetid://84375395270649"
-
--- Move definitions for GUI
-_G.MOVES = {
-    ["Hollow Purple"] = {
-        name = "Hollow Purple",
-        description = "Original technique - 0.6x speed",
-        color = Color3.fromRGB(147, 112, 219),
-        gradient = {Color3.fromRGB(138, 43, 226), Color3.fromRGB(75, 0, 130)},
-        duration = 8,
-        filename = "hollow_purple.lua"
-    },
-    ["Red Reversal"] = {
-        name = "Red Reversal",
-        description = "LeftSpinner - 3s spin then dash",
-        color = Color3.fromRGB(255, 68, 68),
-        gradient = {Color3.fromRGB(255, 0, 0), Color3.fromRGB(139, 0, 0)},
-        duration = 7,
-        filename = "red_reversal.lua"
-    },
-    ["Blue Lapse"] = {
-        name = "Blue Lapse",
-        description = "RightSpinner - Orbiting behind",
-        color = Color3.fromRGB(68, 68, 255),
-        gradient = {Color3.fromRGB(0, 0, 255), Color3.fromRGB(0, 0, 139)},
-        duration = 12,
-        filename = "blue_lapse.lua"
-    },
-    ["200% Purple"] = {
-        name = "200% Purple",
-        description = "ALL 6 ACCOUNTS COMBINE - 0.4x speed",
-        color = Color3.fromRGB(255, 128, 255),
-        gradient = {Color3.fromRGB(255, 0, 255), Color3.fromRGB(128, 0, 128)},
-        duration = 15,
-        filename = "200_percent_purple.lua"
-    }
-}
-
--- Determine my role
-local myRole = _G.ACCOUNT_CONFIG[localPlayer.Name]
-
-if not myRole then
-    print("[ERROR] No role defined for account: " .. localPlayer.Name)
-    print("Available roles:")
-    for name, config in pairs(_G.ACCOUNT_CONFIG) do
-        print("  " .. name .. " -> " .. config.role)
-    end
+-- Set global role variables based on this account
+local myRole = _G.ACCOUNT_ROLES[localPlayer.Name]
+if myRole then
+    _G[myRole] = localPlayer
+    print("[" .. localPlayer.Name .. "] Set as " .. myRole)
+else
+    print("[ERROR] No role for " .. localPlayer.Name)
     return
 end
 
-print("=== TEMU-GOJO MAIN CONTROLLER ===")
-print("Account: " .. localPlayer.Name)
-print("Role: " .. myRole.role)
+-- Base URL for loading scripts
+_G.BASE_URL = "https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/"
 
--- File system functions
-local function setupFileSystem()
-    local fileSupport = isfile and isfolder and writefile and readfile
-    
-    if fileSupport then
-        if not isfolder("Temu-Gojo") then
-            makefolder("Temu-Gojo")
-        end
-        
-        local filePath = "Temu-Gojo/moves.json"
-        if not isfile(filePath) then
-            local initialData = {
-                moveNumber = 0,
-                lastMove = "",
-                timestamp = os.time(),
-                active = false
-            }
-            writefile(filePath, HttpService:JSONEncode(initialData))
-        end
-        return true
-    end
-    return false
+-- Animation constants (global for all scripts)
+_G.ANIMATION_ID = "rbxassetid://109504559118350"
+_G.RED_REVERSAL_ANIMATION_ID = "rbxassetid://117285946325983"
+_G.BLUE_LAPSE_ANIMATION_ID = "rbxassetid://84375395270649"
+_G.HOLLOW_PURPLE_SPEED = 0.7
+_G.RED_REVERSAL_SPEED = 1.2
+_G.BLUE_LAPSE_SPEED = 0.9
+_G.PURPLE_200_SPEED = 0.4
+
+-- State flags (global for coordination)
+_G.moveActive = false
+_G.currentMove = nil
+
+-- Utility functions (global for all scripts)
+function _G.getRoot(char)
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
 end
 
--- Create GUI only for main account
-if myRole.role == "Main" then
-    if not setupFileSystem() then
-        warn("[ERROR] File system required for main account")
-        return
+function _G.getHead(char)
+    if not char then return nil end
+    return char:FindFirstChild("Head") or _G.getRoot(char)
+end
+
+-- Load move scripts
+function _G.loadMove(moveName)
+    local scriptUrl = _G.BASE_URL .. moveName:lower():gsub(" ", "") .. ".lua"
+    print("[LOADING] " .. scriptUrl)
+    
+    local success, result = pcall(function()
+        return game:HttpGet(scriptUrl)
+    end)
+    
+    if success and result then
+        local func, err = loadstring(result)
+        if func then
+            func()
+            print("[LOADED] " .. moveName)
+        else
+            warn("[ERROR] Failed to load " .. moveName .. ": " .. err)
+        end
+    else
+        warn("[ERROR] Failed to fetch " .. moveName)
+    end
+end
+
+-- Anti-fling system (global)
+_G.isAlreadyAntiFling = _G.isAlreadyAntiFling or false
+_G.antiFlingConn = nil
+
+function _G.startAntiFling()
+    if _G.isAlreadyAntiFling then return end
+    
+    _G.isAlreadyAntiFling = true
+    
+    if _G.antiFlingConn then
+        _G.antiFlingConn:Disconnect()
     end
     
-    -- Create GUI
+    _G.antiFlingConn = RunService.Stepped:Connect(function()
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= localPlayer and player.Character then
+                for _, v in pairs(player.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
+end
+
+function _G.stopAntiFling()
+    if _G.antiFlingConn then
+        _G.antiFlingConn:Disconnect()
+        _G.antiFlingConn = nil
+    end
+    _G.isAlreadyAntiFling = false
+end
+
+-- Fix function
+_G.fixPerformance = function()
+    print("[FIX] Resetting " .. localPlayer.Name)
+    _G.moveActive = false
+    
+    if _G.bp then pcall(function() _G.bp:Destroy() end) _G.bp = nil end
+    if _G.bg then pcall(function() _G.bg:Destroy() end) _G.bg = nil end
+    
+    _G.stopAntiFling()
+    
+    if _G.unblockAnimations then
+        _G.unblockAnimations()
+    end
+    
+    local char = localPlayer.Character
+    if char then
+        local root = _G.getRoot(char)
+        if root then
+            root.Anchored = false
+            root.Velocity = Vector3.zero
+            root.RotVelocity = Vector3.zero
+        end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+            hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+            hum.Sit = false
+            hum.WalkSpeed = 16
+        end
+    end
+    print("[FIX] Ready")
+end
+
+-- Anti-AFK for alts
+if myRole ~= "Main" then
+    local last = 0
+    RunService.Heartbeat:Connect(function()
+        if _G.moveActive then return end
+        if tick() - last > 300 then
+            last = tick()
+            local key = Enum.KeyCode[string.char(65 + math.random(0,3))]
+            pcall(function()
+                VirtualInputManager:SendKeyEvent(true, key, false, game)
+                task.wait(0.1)
+                VirtualInputManager:SendKeyEvent(false, key, false, game)
+            end)
+        end
+    end)
+end
+
+-- Create GUI only on main account
+if myRole == "Main" then
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "MoveController"
+    screenGui.Name = "TemuGojo"
     screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
     
     local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 280, 0, 380)
-    mainFrame.Position = UDim2.new(0, 20, 0.5, -190)
+    mainFrame.Size = UDim2.new(0, 280, 0, 420)
+    mainFrame.Position = UDim2.new(0, 20, 0.5, -210)
     mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     mainFrame.BackgroundTransparency = 0.1
-    mainFrame.ClipsDescendants = true
+    mainFrame.Active = true
+    mainFrame.Draggable = true
     
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 12)
     corner.Parent = mainFrame
     
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 45)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 25))
-    })
-    gradient.Rotation = 90
-    gradient.Parent = mainFrame
-    
-    local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 28)
-    titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    titleBar.BackgroundTransparency = 0.3
-    titleBar.Parent = mainFrame
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    title.Text = "TEMU GOJO - MOVE CONTROLLER"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 14
+    title.Font = Enum.Font.GothamBold
+    title.Parent = mainFrame
     
     local titleCorner = Instance.new("UICorner")
     titleCorner.CornerRadius = UDim.new(0, 12)
-    titleCorner.Parent = titleBar
-    
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(0, 140, 1, 0)
-    title.Position = UDim2.new(0, 10, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "MOVE CTRL"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.TextSize = 13
-    title.Font = Enum.Font.GothamBold
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = titleBar
+    titleCorner.Parent = title
     
     local statusFrame = Instance.new("Frame")
-    statusFrame.Size = UDim2.new(0, 60, 0, 20)
-    statusFrame.Position = UDim2.new(1, -65, 0.5, -10)
+    statusFrame.Size = UDim2.new(0, 80, 0, 20)
+    statusFrame.Position = UDim2.new(1, -90, 0, 5)
     statusFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
     statusFrame.BackgroundTransparency = 0.2
-    statusFrame.Parent = titleBar
+    statusFrame.Parent = title
     
     local statusCorner = Instance.new("UICorner")
     statusCorner.CornerRadius = UDim.new(0, 10)
@@ -184,243 +230,86 @@ if myRole.role == "Main" then
     statusText.Font = Enum.Font.GothamBold
     statusText.Parent = statusFrame
     
-    local movesContainer = Instance.new("Frame")
-    movesContainer.Size = UDim2.new(1, -20, 1, -38)
-    movesContainer.Position = UDim2.new(0, 10, 0, 33)
-    movesContainer.BackgroundTransparency = 1
-    movesContainer.Parent = mainFrame
+    local container = Instance.new("ScrollingFrame")
+    container.Size = UDim2.new(1, -20, 1, -40)
+    container.Position = UDim2.new(0, 10, 0, 35)
+    container.BackgroundTransparency = 1
+    container.ScrollBarThickness = 6
+    container.CanvasSize = UDim2.new(0, 0, 0, 0)
+    container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    container.Parent = mainFrame
     
     local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0, 8)
-    layout.Parent = movesContainer
+    layout.Parent = container
     
-    for moveName, moveData in pairs(_G.MOVES) do
-        local buttonFrame = Instance.new("Frame")
-        buttonFrame.Size = UDim2.new(1, 0, 0, 70)
-        buttonFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-        buttonFrame.BackgroundTransparency = 0.2
-        buttonFrame.Parent = movesContainer
+    local moves = {
+        {name = "Hollow Purple", color = Color3.fromRGB(147, 112, 219), desc = "Original technique"},
+        {name = "Red Reversal", color = Color3.fromRGB(255, 68, 68), desc = "LeftSpinner - 3s spin then dash"},
+        {name = "Blue Lapse", color = Color3.fromRGB(68, 68, 255), desc = "RightSpinner - Orbiting behind"},
+        {name = "200% Purple", color = Color3.fromRGB(255, 128, 255), desc = "ALL 6 ACCOUNTS COMBINE"}
+    }
+    
+    for _, moveData in ipairs(moves) do
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(1, 0, 0, 60)
+        button.BackgroundColor3 = moveData.color
+        button.BackgroundTransparency = 0.3
+        button.Text = ""
+        button.Parent = container
         
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 8)
-        buttonCorner.Parent = buttonFrame
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 8)
+        btnCorner.Parent = button
         
-        local buttonGradient = Instance.new("UIGradient")
-        buttonGradient.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, moveData.gradient[1]),
-            ColorSequenceKeypoint.new(1, moveData.gradient[2])
-        })
-        buttonGradient.Rotation = 45
-        buttonGradient.Parent = buttonFrame
-        
-        local moveLabel = Instance.new("TextLabel")
-        moveLabel.Size = UDim2.new(0, 120, 0, 20)
-        moveLabel.Position = UDim2.new(0, 10, 0, 8)
-        moveLabel.BackgroundTransparency = 1
-        moveLabel.Text = moveName
-        moveLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        moveLabel.TextSize = 13
-        moveLabel.Font = Enum.Font.GothamBold
-        moveLabel.TextXAlignment = Enum.TextXAlignment.Left
-        moveLabel.Parent = buttonFrame
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(1, -20, 0, 20)
+        nameLabel.Position = UDim2.new(0, 10, 0, 8)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = moveData.name
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextSize = 14
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = button
         
         local descLabel = Instance.new("TextLabel")
-        descLabel.Size = UDim2.new(0, 140, 0, 30)
+        descLabel.Size = UDim2.new(1, -20, 0, 20)
         descLabel.Position = UDim2.new(0, 10, 0, 30)
         descLabel.BackgroundTransparency = 1
-        descLabel.Text = moveData.description
-        descLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
-        descLabel.TextSize = 9
+        descLabel.Text = moveData.desc
+        descLabel.TextColor3 = Color3.fromRGB(200, 200, 255)
+        descLabel.TextSize = 10
         descLabel.Font = Enum.Font.Gotham
-        descLabel.TextWrapped = true
         descLabel.TextXAlignment = Enum.TextXAlignment.Left
-        descLabel.Parent = buttonFrame
+        descLabel.Parent = button
         
-        local executeButton = Instance.new("TextButton")
-        executeButton.Size = UDim2.new(0, 60, 0, 30)
-        executeButton.Position = UDim2.new(1, -70, 0.5, -15)
-        executeButton.BackgroundColor3 = moveData.color
-        executeButton.BackgroundTransparency = 0.3
-        executeButton.Text = "CAST"
-        executeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        executeButton.TextSize = 11
-        executeButton.Font = Enum.Font.GothamBold
-        executeButton.Parent = buttonFrame
-        
-        local buttonCorner2 = Instance.new("UICorner")
-        buttonCorner2.CornerRadius = UDim.new(0, 6)
-        buttonCorner2.Parent = executeButton
-        
-        executeButton:SetAttribute("MoveName", moveName)
-        
-        executeButton.MouseButton1Click:Connect(function()
-            if _G.moveInProgress then
+        button.MouseButton1Click:Connect(function()
+            if _G.moveActive then
                 statusFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-                statusText.Text = "LOCKED"
-                task.wait(0.3)
-                if _G.moveInProgress then
-                    statusFrame.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-                    statusText.Text = "ACTIVE"
-                end
+                statusText.Text = "BUSY"
+                task.wait(1)
+                statusFrame.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+                statusText.Text = "ACTIVE"
                 return
             end
             
-            local clickedMoveName = executeButton:GetAttribute("MoveName")
-            local moveData = _G.MOVES[clickedMoveName]
-            
-            _G.moveInProgress = true
             statusFrame.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
             statusText.Text = "ACTIVE"
             
-            for _, child in pairs(movesContainer:GetChildren()) do
-                if child:IsA("Frame") then
-                    child.BackgroundTransparency = 0.5
-                end
-            end
+            _G.loadMove(moveData.name)
             
-            -- Increment move number
-            local data = readMoveFile() or {moveNumber = 0, lastMove = "", timestamp = os.time(), active = true}
-            data.moveNumber = data.moveNumber + 1
-            data.lastMove = clickedMoveName
-            data.timestamp = os.time()
-            data.active = true
-            writeMoveFile(data)
+            task.wait(15) -- Max move duration
             
-            print("[MAIN] Executing move #" .. data.moveNumber .. ": " .. clickedMoveName)
-            
-            -- Load and execute the move script
-            local success, result = pcall(function()
-                return game:HttpGet(_G.BASE_URL .. moveData.filename)
-            end)
-            
-            if success and result then
-                local func = loadstring(result)
-                if func then
-                    func()
-                else
-                    warn("[ERROR] Failed to load move script")
-                end
-            else
-                warn("[ERROR] Could not fetch move script")
-            end
-            
-            task.wait(moveData.duration)
-            
-            _G.moveInProgress = false
             statusFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
             statusText.Text = "READY"
-            
-            for _, child in pairs(movesContainer:GetChildren()) do
-                if child:IsA("Frame") then
-                    child.BackgroundTransparency = 0.2
-                end
-            end
-            
-            local data = readMoveFile()
-            if data then
-                data.active = false
-                writeMoveFile(data)
-            end
         end)
     end
-    
-    -- Draggable
-    local dragging = false
-    local dragInput, dragStart, startPos
-    
-    titleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = mainFrame.Position
-        end
-    end)
-    
-    titleBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            mainFrame.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
     
     mainFrame.Parent = screenGui
-    print("[GUI] Created with " .. table.count(_G.MOVES) .. " moves")
-    
-    -- File read/write functions
-    function readMoveFile()
-        local success, data = pcall(function()
-            local content = readfile("Temu-Gojo/moves.json")
-            return HttpService:JSONDecode(content)
-        end)
-        return success and data or nil
-    end
-    
-    function writeMoveFile(data)
-        local success = pcall(function()
-            writefile("Temu-Gojo/moves.json", HttpService:JSONEncode(data))
-        end)
-        return success
-    end
-else
-    -- Alt accounts: Watch for move commands
-    if not setupFileSystem() then
-        warn("[ERROR] File system required")
-        return
-    end
-    
-    local lastMoveNumber = 0
-    local initialData = readMoveFile()
-    if initialData then
-        lastMoveNumber = initialData.moveNumber
-    end
-    
-    RunService.RenderStepped:Connect(function()
-        local data = readMoveFile()
-        if data and data.moveNumber > lastMoveNumber and data.active and not _G.active then
-            print("[WATCHER] " .. myRole.role .. " executing: " .. data.lastMove)
-            
-            local moveData = _G.MOVES[data.lastMove]
-            if moveData then
-                local success, result = pcall(function()
-                    return game:HttpGet(_G.BASE_URL .. moveData.filename)
-                end)
-                
-                if success and result then
-                    local func = loadstring(result)
-                    if func then
-                        func()
-                    end
-                end
-            end
-            
-            lastMoveNumber = data.moveNumber
-        end
-    end)
-    
-    function readMoveFile()
-        local success, data = pcall(function()
-            local content = readfile("Temu-Gojo/moves.json")
-            return HttpService:JSONDecode(content)
-        end)
-        return success and data or nil
-    end
+    print("[GUI] Created")
 end
 
-print("=== READY ===")
+print("=== MAIN CONTROLLER LOADED ===")
+print("Role: " .. myRole)
+print("Account: " .. localPlayer.Name)
