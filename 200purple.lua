@@ -337,12 +337,14 @@ local function updatePosition(mainHead, offset)
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        spinPhase = spinPhase + (spinSpeed * 0.05)
-        -- FIXED: Removed math.rad multiplication to maintain full spin speed
+        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
+        -- This ensures consistent spin speed regardless of how long the script runs
+        spinPhase = spinPhase + 0.05
+        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
-            spinPhase * 0.1 * spinAxis.X,
-            spinPhase * 0.1 * spinAxis.Y,
-            spinPhase * 0.1 * spinAxis.Z
+            spinPhase * spinSpeed * 0.05 * spinAxis.X,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Y,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Z
         )
     end
 end
@@ -403,11 +405,11 @@ startAntiFling()
 -- Reset moveStartTime AFTER the 0.7s delay to ensure proper timing
 moveStartTime = tick()
 
--- LEFT SPINNER (Front Left)
+-- LEFT SPINNER (Front Left) - INCREASED BASE SPIN SPEED
 if myRole.role == "LeftSpinner" then
     print("[LEFTSPINNER] Merging to center front")
     currentOffset = Vector3.new(-5, 0, 2)
-    setSpin(20, Vector3.new(1, 1, 0.8))
+    setSpin(40, Vector3.new(1, 1, 0.8)) -- Increased from 20 to 40
     
     while getTimeSinceStart() < 3 and active do
         local progress = getTimeSinceStart() / 3
@@ -428,11 +430,11 @@ if myRole.role == "LeftSpinner" then
     return
 end
 
--- RIGHT SPINNER (Front Right)
+-- RIGHT SPINNER (Front Right) - INCREASED BASE SPIN SPEED
 if myRole.role == "RightSpinner" then
     print("[RIGHTSPINNER] Merging to center front")
     currentOffset = Vector3.new(5, 0, 2)
-    setSpin(20, Vector3.new(1, 1, 0.8))
+    setSpin(40, Vector3.new(1, 1, 0.8)) -- Increased from 20 to 40
     
     while getTimeSinceStart() < 3 and active do
         local progress = getTimeSinceStart() / 3
@@ -453,11 +455,11 @@ if myRole.role == "RightSpinner" then
     return
 end
 
--- BACK LEFT SPINNER
+-- BACK LEFT SPINNER - INCREASED BASE SPIN SPEED
 if myRole.role == "BackLeftSpinner" then
     print("[BACKLEFT] Merging to center back")
     currentOffset = Vector3.new(-4, 0, -8)
-    setSpin(20, Vector3.new(1, 1, 0.5))
+    setSpin(40, Vector3.new(1, 1, 0.5)) -- Increased from 20 to 40
     
     while getTimeSinceStart() < 3 and active do
         local progress = getTimeSinceStart() / 3
@@ -478,11 +480,11 @@ if myRole.role == "BackLeftSpinner" then
     return
 end
 
--- BACK RIGHT SPINNER
+-- BACK RIGHT SPINNER - INCREASED BASE SPIN SPEED
 if myRole.role == "BackRightSpinner" then
     print("[BACKRIGHT] Merging to center back")
     currentOffset = Vector3.new(4, 0, -8)
-    setSpin(20, Vector3.new(1, 1, 0.5))
+    setSpin(40, Vector3.new(1, 1, 0.5)) -- Increased from 20 to 40
     
     while getTimeSinceStart() < 3 and active do
         local progress = getTimeSinceStart() / 3
@@ -503,7 +505,7 @@ if myRole.role == "BackRightSpinner" then
     return
 end
 
--- BACK FINAL APPEAR (Becomes RIGHT FRONT)
+-- BACK FINAL APPEAR (Becomes RIGHT FRONT) - INCREASED BASE SPIN SPEEDS
 if myRole.role == "BackFinalAppear" then
     enableNoclip()
     
@@ -515,7 +517,7 @@ if myRole.role == "BackFinalAppear" then
     if not active then return end
     
     currentOffset = Vector3.new(0, 0, -8)
-    setSpin(20, Vector3.new(0.5, 1, 0.5))
+    setSpin(40, Vector3.new(0.5, 1, 0.5)) -- Increased from 20 to 40
     
     -- Phase 3: Rise up
     local startY = frozenY or mainHead.Position.Y
@@ -547,8 +549,8 @@ if myRole.role == "BackFinalAppear" then
     
     if not active then return end
     
-    -- Phase 5: Spin
-    setSpin(30, Vector3.new(1, 1, 1))
+    -- Phase 5: Spin - INCREASED BASE SPIN SPEED
+    setSpin(60, Vector3.new(1, 1, 1)) -- Increased from 30 to 60
     
     while getTimeSinceStart() < 9 and active do
         updatePosition(mainHead, currentOffset)
@@ -557,8 +559,8 @@ if myRole.role == "BackFinalAppear" then
     
     if not active then return end
     
-    -- Phase 6: Dash
-    setSpin(35, Vector3.new(1, 1, 1))
+    -- Phase 6: Dash - INCREASED BASE SPIN SPEED
+    setSpin(70, Vector3.new(1, 1, 1)) -- Increased from 35 to 70
     local startDashOffset = currentOffset
     local targetDashOffset = Vector3.new(3, 0, 302)
     
@@ -581,7 +583,7 @@ if myRole.role == "BackFinalAppear" then
     return
 end
 
--- FINAL APPEAR (Becomes LEFT FRONT)
+-- FINAL APPEAR (Becomes LEFT FRONT) - INCREASED BASE SPIN SPEEDS
 if myRole.role == "FinalAppear" then
     enableNoclip()
     
@@ -593,7 +595,7 @@ if myRole.role == "FinalAppear" then
     if not active then return end
     
     currentOffset = Vector3.new(0, 0, 2)
-    setSpin(20, Vector3.new(0.5, 1, 0.5))
+    setSpin(40, Vector3.new(0.5, 1, 0.5)) -- Increased from 20 to 40
     
     -- Phase 3: Rise up
     local startY = frozenY or mainHead.Position.Y
@@ -625,8 +627,8 @@ if myRole.role == "FinalAppear" then
     
     if not active then return end
     
-    -- Phase 5: Spin
-    setSpin(30, Vector3.new(1, 1, 1))
+    -- Phase 5: Spin - INCREASED BASE SPIN SPEED
+    setSpin(60, Vector3.new(1, 1, 1)) -- Increased from 30 to 60
     
     while getTimeSinceStart() < 9 and active do
         updatePosition(mainHead, currentOffset)
@@ -635,8 +637,8 @@ if myRole.role == "FinalAppear" then
     
     if not active then return end
     
-    -- Phase 6: Dash
-    setSpin(35, Vector3.new(1, 1, 1))
+    -- Phase 6: Dash - INCREASED BASE SPIN SPEED
+    setSpin(70, Vector3.new(1, 1, 1)) -- Increased from 35 to 70
     local startDashOffset = currentOffset
     local targetDashOffset = Vector3.new(-3, 0, 302)
     
