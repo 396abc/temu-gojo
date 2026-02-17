@@ -343,12 +343,14 @@ local function updatePosition(mainHead, offset)
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        spinPhase = spinPhase + (spinSpeed * 0.05)
-        -- FIXED: Removed math.rad multiplication to maintain full spin speed
+        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
+        -- This ensures consistent spin speed regardless of how long the script runs
+        spinPhase = spinPhase + 0.05
+        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
-            spinPhase * 0.1 * spinAxis.X,
-            spinPhase * 0.1 * spinAxis.Y,
-            spinPhase * 0.1 * spinAxis.Z
+            spinPhase * spinSpeed * 0.05 * spinAxis.X,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Y,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Z
         )
     end
 end
@@ -402,7 +404,7 @@ if myRole.role == "LeftSpinner" or myRole.role == "RightSpinner" then
     local dir = (myRole.role == "LeftSpinner") and -1 or 1
     
     currentOffset = Vector3.new(dir * 5, 0, 2)
-    setSpin(15, Vector3.new(1, 1, 0.8))
+    setSpin(30, Vector3.new(1, 1, 0.8)) -- Increased from 15 to 30
     
     -- Phase 1: Track head
     while getTimeSinceStart() < 2 and active do
@@ -446,7 +448,7 @@ elseif myRole.role == "FinalAppear" then
     if not active then return end
     
     currentOffset = Vector3.new(0, 0, 10)
-    setSpin(18, Vector3.new(0.8, 1, 0.8))
+    setSpin(36, Vector3.new(0.8, 1, 0.8)) -- Increased from 18 to 36
     
     -- Phase 3: Hold position briefly
     while getTimeSinceStart() < 5.5 and active do
