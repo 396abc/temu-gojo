@@ -304,12 +304,14 @@ local function updatePosition(mainHead, offset)
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        spinPhase = spinPhase + (spinSpeed * 0.05)
-        -- FIXED: Removed math.rad multiplication to maintain full spin speed
+        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
+        -- This ensures consistent spin speed regardless of how long the script runs
+        spinPhase = spinPhase + 0.05
+        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
-            spinPhase * 0.1 * spinAxis.X,
-            spinPhase * 0.1 * spinAxis.Y,
-            spinPhase * 0.1 * spinAxis.Z
+            spinPhase * spinSpeed * 0.05 * spinAxis.X,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Y,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Z
         )
     end
 end
@@ -359,17 +361,17 @@ initFlight(getRoot(myChar))
 moveStartTime = tick()
 
 -- RED REVERSAL LOGIC
--- Phase 1: Spin in center for 3 seconds
+-- Phase 1: Spin in center for 3 seconds - INCREASED BASE SPIN SPEED
 currentOffset = Vector3.new(0, 0, 5)
-setSpin(15, Vector3.new(1, 1, 0.8))
+setSpin(30, Vector3.new(1, 1, 0.8)) -- Increased from 15 to 30
 
 while getTimeSinceStart() < 3 and active do
     updatePosition(mainHead, currentOffset)
     RunService.Heartbeat:Wait()
 end
 
--- Phase 2: Dash forward 300 studs
-setSpin(20, Vector3.new(1, 1, 0.8))
+-- Phase 2: Dash forward 300 studs - INCREASED BASE SPIN SPEED
+setSpin(40, Vector3.new(1, 1, 0.8)) -- Increased from 20 to 40
 local startOffset = currentOffset
 local targetOffset = Vector3.new(0, 0, 305)
 
