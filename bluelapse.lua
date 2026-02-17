@@ -309,12 +309,14 @@ local function updatePosition(mainHead, offset)
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        spinPhase = spinPhase + (spinSpeed * 0.05)
-        -- FIXED: Removed math.rad multiplication to maintain full spin speed
+        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
+        -- This ensures consistent spin speed regardless of how long the script runs
+        spinPhase = spinPhase + 0.05
+        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
-            spinPhase * 0.1 * spinAxis.X,
-            spinPhase * 0.1 * spinAxis.Y,
-            spinPhase * 0.1 * spinAxis.Z
+            spinPhase * spinSpeed * 0.05 * spinAxis.X,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Y,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Z
         )
     end
 end
@@ -346,12 +348,14 @@ local function updateOrbitPosition(mainHead, centerOffset, radius, angle, height
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        spinPhase = spinPhase + (spinSpeed * 0.05)
-        -- FIXED: Removed math.rad multiplication to maintain full spin speed
+        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
+        -- This ensures consistent spin speed regardless of how long the script runs
+        spinPhase = spinPhase + 0.05
+        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
-            spinPhase * 0.1 * spinAxis.X,
-            spinPhase * 0.1 * spinAxis.Y,
-            spinPhase * 0.1 * spinAxis.Z
+            spinPhase * spinSpeed * 0.05 * spinAxis.X,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Y,
+            spinPhase * spinSpeed * 0.05 * spinAxis.Z
         )
     end
 end
@@ -401,9 +405,9 @@ initFlight(getRoot(myChar))
 moveStartTime = tick()
 
 -- BLUE LAPSE LOGIC
--- Phase 1: Initial position (2 seconds)
+-- Phase 1: Initial position (2 seconds) - INCREASED BASE SPIN SPEED
 currentOffset = Vector3.new(-4, 0, -5)
-setSpin(10, Vector3.new(0, 1, 0))
+setSpin(20, Vector3.new(0, 1, 0)) -- Increased from 10 to 20
 
 while getTimeSinceStart() < 2 and active do
     updatePosition(mainHead, currentOffset)
