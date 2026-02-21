@@ -80,10 +80,10 @@ Replace it with the username of the account you want to **control abilities from
 Enjoy.
 ---
 ### 🥀Move Shortcuts
-- Hollow Purple: ``loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/hollowpurple.lua"))()``
-- 200% Purple: ``loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/200purple.lua"))()``
-- Red Reversal: ``loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/redreversal.lua"))()``
-- Blue Lapse: ``loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/bluelapse.lua"))()``
+- Hollow Purple: ```loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/hollowpurple.lua"))()```
+- 200% Purple: ```loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/200purple.lua"))()```
+- Red Reversal: ```loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/redreversal.lua"))()```
+- Blue Lapse: ```loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/bluelapse.lua"))()```
 - For **`main.lua`** you have to copy the entire thing, can't use loadstring because of account settings.
 ---
 ### Notes:
