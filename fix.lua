@@ -1,5 +1,5 @@
 --[[
-    UNIVERSAL FIX SCRIPT - Execute on any account to reset
+    UNIVERSAL FIX SCRIPT - execute on any account to reset
 ]]
 
 local Players = game:GetService("Players")
@@ -8,21 +8,21 @@ local localPlayer = Players.LocalPlayer
 
 print("[FIX] Resetting " .. localPlayer.Name)
 
--- Stop all movement
+-- stop all movement
 _G.active = false
 
--- Destroy body movers
+-- destroy body movers
 if _G.bp then pcall(function() _G.bp:Destroy() end) _G.bp = nil end
 if _G.bg then pcall(function() _G.bg:Destroy() end) _G.bg = nil end
 
--- Stop anti-fling
+-- stop anti-fling
 if _G.antiFlingConn then
     _G.antiFlingConn:Disconnect()
     _G.antiFlingConn = nil
 end
 _G.isAlreadyAntiFling = false
 
--- Unblock animations
+-- unblock animations
 if localPlayer.Character then
     local hum = localPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hum then
@@ -38,7 +38,7 @@ if localPlayer.Character then
     end
 end
 
--- Clean up animation
+-- clean up animation
 if _G.animTrack then
     pcall(function()
         if _G.animTrack.IsPlaying then
@@ -49,7 +49,7 @@ if _G.animTrack then
     _G.animTrack = nil
 end
 
--- Reset character
+-- reset character
 local char = localPlayer.Character
 if char then
     local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
