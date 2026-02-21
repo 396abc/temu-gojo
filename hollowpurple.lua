@@ -1,7 +1,5 @@
 --[[
-    HOLLOW PURPLE - For LeftSpinner, RightSpinner, FinalAppear
-    Execute this on alt accounts when performing Hollow Purple
-    Animation only plays on main account
+    HOLLOW PURPLE - for LeftSpinner, RightSpinner, FinalAppear
 ]]
 
 local Players = game:GetService("Players")
@@ -9,14 +7,14 @@ local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 
--- Get role from global config
+-- get role from global config
 local myRole = _G.ACCOUNT_CONFIG and _G.ACCOUNT_CONFIG[localPlayer.Name]
 if not myRole then
     print("[ERROR] No role defined for " .. localPlayer.Name)
     return
 end
 
--- Only run if this account is part of Hollow Purple
+-- only run if this account is part of Hollow Purple
 if myRole.role ~= "LeftSpinner" and myRole.role ~= "RightSpinner" and myRole.role ~= "FinalAppear" and myRole.role ~= "Main" then
     print("[SKIP] " .. myRole.role .. " not used in Hollow Purple")
     return
@@ -24,7 +22,7 @@ end
 
 print("=== HOLLOW PURPLE STARTED for " .. myRole.role .. " ===")
 
--- State
+-- state
 local active = true
 local bp, bg = nil, nil
 local spinPhase = 0
@@ -34,17 +32,17 @@ local currentOffset = Vector3.zero
 local frozenY = nil
 local moveStartTime = tick()
 
--- Animation state (only used for main account)
+-- animation state (only used for main account)
 local animTrack = nil
 local blockAnimConn = nil
 local animationPlaying = false
 local animHeartbeatConn = nil
 
--- Anti-fling
+-- anti-fling
 _G.isAlreadyAntiFling = _G.isAlreadyAntiFling or false
 local antiFlingConn = nil
 
--- Noclip for FinalAppear
+-- noclip
 local Noclipping = nil
 local noclipActive = false
 
@@ -116,12 +114,10 @@ local function cleanupAnimation()
 end
 
 local function playMainAnimation()
-    -- ONLY play if this is the main account
     if myRole.role ~= "Main" then return false end
     
     print("[MAIN] Playing Hollow Purple animation")
     
-    -- NO DELAY - Play animation immediately
     local char = localPlayer.Character
     if not char then 
         print("[ANIM] No character")
@@ -134,13 +130,10 @@ local function playMainAnimation()
         return false
     end
     
-    -- Clean up any existing animation
     cleanupAnimation()
     
-    -- Block all other animations
     blockOtherAnimations(humanoid)
     
-    -- Load animation
     local anim = Instance.new("Animation")
     anim.AnimationId = _G.ANIMATION_ID
     
@@ -157,7 +150,6 @@ local function playMainAnimation()
     animTrack = track
     animTrack.Looped = false
     
-    -- Stop any other tracks
     local animator = humanoid:FindFirstChildOfClass("Animator")
     if animator then
         for _, otherTrack in pairs(animator:GetPlayingAnimationTracks()) do
@@ -167,7 +159,6 @@ local function playMainAnimation()
         end
     end
     
-    -- Start playing
     pcall(function()
         animTrack:Play()
         animTrack.TimePosition = 0
@@ -176,7 +167,6 @@ local function playMainAnimation()
     
     print("[MAIN] Animation started at " .. _G.PLAYBACK_SPEED .. "x speed")
     
-    -- Monitor animation speed
     animHeartbeatConn = RunService.Heartbeat:Connect(function()
         if not animTrack or not animTrack.IsPlaying then return end
         
@@ -186,10 +176,8 @@ local function playMainAnimation()
             end
         end)
     end)
-    
-    -- Auto-unblock after animation duration
     task.spawn(function()
-        task.wait(8) -- Hollow Purple duration
+        task.wait(8) 
         if animationPlaying and humanoid and humanoid.Parent then
             unblockAnimations(humanoid)
             print("[MAIN] Animation completed, unblocked")
@@ -343,10 +331,7 @@ local function updatePosition(mainHead, offset)
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
-        -- This ensures consistent spin speed regardless of how long the script runs
         spinPhase = spinPhase + 0.05
-        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
             spinPhase * spinSpeed * 0.05 * spinAxis.X,
             spinPhase * spinSpeed * 0.05 * spinAxis.Y,
@@ -360,18 +345,15 @@ local function getTimeSinceStart()
 end
 
 -- ========== MAIN EXECUTION ==========
--- PLAY ANIMATION ON MAIN ACCOUNT ONLY (NO DELAY)
 if myRole.role == "Main" then
     playMainAnimation()
     active = false
     return
 end
 
--- ALT ACCOUNTS - ADD 0.7 SECOND DELAY BEFORE MOVEMENT
 print("[WAIT] Waiting 0.7s for animation to load...")
 task.wait(0.7)
 
--- ALT ACCOUNTS MOVEMENT LOGIC
 local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
 if not mainPlayer then print("[ERROR] Main not found") return end
 
@@ -396,23 +378,20 @@ if not myChar then print("[ERROR] Own char missing") return end
 startAntiFling()
 initFlight(getRoot(myChar))
 
--- Reset moveStartTime AFTER the 0.7s delay to ensure proper timing
 moveStartTime = tick()
 
--- ROLE-SPECIFIC LOGIC
+-- tracking and execution for alts
 if myRole.role == "LeftSpinner" or myRole.role == "RightSpinner" then
     local dir = (myRole.role == "LeftSpinner") and -1 or 1
     
     currentOffset = Vector3.new(dir * 5, 0, 2)
-    setSpin(30, Vector3.new(1, 1, 0.8)) -- Increased from 15 to 30
+    setSpin(30, Vector3.new(1, 1, 0.8)) 
     
-    -- Phase 1: Track head
     while getTimeSinceStart() < 2 and active do
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
-    -- Phase 2: Converge
     local startOffset = currentOffset
     local targetOffset = Vector3.new(0, 0, 10)
     
@@ -428,7 +407,6 @@ if myRole.role == "LeftSpinner" or myRole.role == "RightSpinner" then
     setSpin(0)
     cleanup()
     
-    -- Teleport away
     local root = getRoot(myChar)
     if root then
         root.CFrame = CFrame.new(0, 1000, 0)
@@ -440,7 +418,6 @@ if myRole.role == "LeftSpinner" or myRole.role == "RightSpinner" then
 elseif myRole.role == "FinalAppear" then
     enableNoclip()
     
-    -- Wait for Phase 1-2 (accounting for the 0.7s delay)
     while getTimeSinceStart() < 4.5 and active do
         RunService.Heartbeat:Wait()
     end
@@ -448,15 +425,13 @@ elseif myRole.role == "FinalAppear" then
     if not active then return end
     
     currentOffset = Vector3.new(0, 0, 10)
-    setSpin(36, Vector3.new(0.8, 1, 0.8)) -- Increased from 18 to 36
+    setSpin(36, Vector3.new(0.8, 1, 0.8)) 
     
-    -- Phase 3: Hold position briefly
     while getTimeSinceStart() < 5.5 and active do
         updatePosition(mainHead, currentOffset)
         RunService.Heartbeat:Wait()
     end
     
-    -- Phase 4: Dash
     local startOffset = currentOffset
     local targetOffset = Vector3.new(0, 0, 310)
     
