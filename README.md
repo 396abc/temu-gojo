@@ -80,11 +80,11 @@ Replace it with the username of the account you want to **control abilities from
 Enjoy.
 ---
 ### 🥀Move Shortcuts
-Hollow Purple: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/hollowpurple.lua"))()
-200% Purple: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/200purple.lua"))()
-Red Reversal: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/redreversal.lua"))()
-Blue Lapse: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/bluelapse.lua"))()
-For **`main.lua`** you have to copy the entire thing, can't use loadstring because of account settings.
+- Hollow Purple: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/hollowpurple.lua"))()
+- 200% Purple: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/200purple.lua"))()
+- Red Reversal: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/redreversal.lua"))()
+- Blue Lapse: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/bluelapse.lua"))()
+- For **`main.lua`** you have to copy the entire thing, can't use loadstring because of account settings.
 ---
 ### Notes:
  - If you open your main account first when opening all of your clients using Fishtrap, there is a chance some animations won't load for the client, and new players that join skins won't load. This doesn't affect the script at all; everyone else sees the animations, but it just looks bad for you. You can combat this by opening the main account's client/window last and it will get loading priority.
