@@ -48,6 +48,11 @@ Locate:
 ```
 _G.MAIN_USER_NAME
 ```
+Also locate:
+
+```
+    ["Change this to your main account name as well"] = { role = "Main", order = 0 },
+```
 
 Replace it with the username of the account you want to **control abilities from**.
 
