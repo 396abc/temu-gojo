@@ -1,7 +1,5 @@
 --[[
-    RED REVERSAL - For LeftSpinner only
-    Execute this on hiUnineo1 when performing Red Reversal
-    Animation only plays on main account
+    RED REVERSAL - for LeftSpinner only
 ]]
 
 local Players = game:GetService("Players")
@@ -9,14 +7,13 @@ local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 
--- Get role from global config
+-- get role from global config
 local myRole = _G.ACCOUNT_CONFIG and _G.ACCOUNT_CONFIG[localPlayer.Name]
 if not myRole then
     print("[ERROR] No role defined for " .. localPlayer.Name)
     return
 end
 
--- Only run if this is LeftSpinner or Main
 if myRole.role ~= "LeftSpinner" and myRole.role ~= "Main" then
     print("[SKIP] Red Reversal is exclusive to LeftSpinner and Main")
     return
@@ -24,7 +21,7 @@ end
 
 print("=== RED REVERSAL STARTED for " .. myRole.role .. " ===")
 
--- State
+-- state
 local active = true
 local bp, bg = nil, nil
 local spinPhase = 0
@@ -34,13 +31,13 @@ local currentOffset = Vector3.zero
 local frozenY = nil
 local moveStartTime = tick()
 
--- Animation state (only used for main account)
+-- animation state (only used for main account)
 local animTrack = nil
 local blockAnimConn = nil
 local animationPlaying = false
 local animHeartbeatConn = nil
 
--- Anti-fling
+-- anti-fling
 _G.isAlreadyAntiFling = _G.isAlreadyAntiFling or false
 local antiFlingConn = nil
 
@@ -112,12 +109,10 @@ local function cleanupAnimation()
 end
 
 local function playRedReversalAnimation()
-    -- ONLY play if this is the main account
     if myRole.role ~= "Main" then return false end
     
     print("[MAIN] Playing Red Reversal animation")
     
-    -- NO DELAY - Play animation immediately
     local char = localPlayer.Character
     if not char then 
         print("[ANIM] No character")
@@ -130,13 +125,10 @@ local function playRedReversalAnimation()
         return false
     end
     
-    -- Clean up any existing animation
     cleanupAnimation()
     
-    -- Block all other animations
     blockOtherAnimations(humanoid)
-    
-    -- Load animation
+
     local anim = Instance.new("Animation")
     anim.AnimationId = _G.RED_REVERSAL_ANIMATION_ID
     
@@ -152,8 +144,7 @@ local function playRedReversalAnimation()
     
     animTrack = track
     animTrack.Looped = false
-    
-    -- Stop any other tracks
+
     local animator = humanoid:FindFirstChildOfClass("Animator")
     if animator then
         for _, otherTrack in pairs(animator:GetPlayingAnimationTracks()) do
@@ -163,7 +154,7 @@ local function playRedReversalAnimation()
         end
     end
     
-    -- Start playing
+
     pcall(function()
         animTrack:Play()
         animTrack.TimePosition = 0
@@ -172,7 +163,7 @@ local function playRedReversalAnimation()
     
     print("[MAIN] Animation started at " .. _G.RED_REVERSAL_SPEED .. "x speed")
     
-    -- Monitor animation speed
+
     animHeartbeatConn = RunService.Heartbeat:Connect(function()
         if not animTrack or not animTrack.IsPlaying then return end
         
@@ -183,9 +174,9 @@ local function playRedReversalAnimation()
         end)
     end)
     
-    -- Auto-unblock after animation duration
+
     task.spawn(function()
-        task.wait(7) -- Red Reversal duration
+        task.wait(7) 
         if animationPlaying and humanoid and humanoid.Parent then
             unblockAnimations(humanoid)
             print("[MAIN] Animation completed, unblocked")
@@ -304,10 +295,7 @@ local function updatePosition(mainHead, offset)
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
-        -- This ensures consistent spin speed regardless of how long the script runs
         spinPhase = spinPhase + 0.05
-        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
             spinPhase * spinSpeed * 0.05 * spinAxis.X,
             spinPhase * spinSpeed * 0.05 * spinAxis.Y,
@@ -321,18 +309,15 @@ local function getTimeSinceStart()
 end
 
 -- ========== MAIN EXECUTION ==========
--- PLAY ANIMATION ON MAIN ACCOUNT ONLY (NO DELAY)
 if myRole.role == "Main" then
     playRedReversalAnimation()
     active = false
     return
 end
 
--- ALT ACCOUNTS - ADD 0.7 SECOND DELAY BEFORE MOVEMENT
 print("[WAIT] Waiting 0.7s for animation to load...")
 task.wait(0.7)
 
--- LEFT SPINNER MOVEMENT LOGIC
 local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
 if not mainPlayer then print("[ERROR] Main not found") return end
 
@@ -357,21 +342,18 @@ if not myChar then print("[ERROR] Own char missing") return end
 startAntiFling()
 initFlight(getRoot(myChar))
 
--- Reset moveStartTime AFTER the 0.7s delay to ensure proper timing
 moveStartTime = tick()
 
--- RED REVERSAL LOGIC
--- Phase 1: Spin in center for 3 seconds - INCREASED BASE SPIN SPEED
 currentOffset = Vector3.new(0, 0, 5)
-setSpin(30, Vector3.new(1, 1, 0.8)) -- Increased from 15 to 30
+setSpin(30, Vector3.new(1, 1, 0.8))
 
 while getTimeSinceStart() < 3 and active do
     updatePosition(mainHead, currentOffset)
     RunService.Heartbeat:Wait()
 end
 
--- Phase 2: Dash forward 300 studs - INCREASED BASE SPIN SPEED
-setSpin(40, Vector3.new(1, 1, 0.8)) -- Increased from 20 to 40
+
+setSpin(40, Vector3.new(1, 1, 0.8)) 
 local startOffset = currentOffset
 local targetOffset = Vector3.new(0, 0, 305)
 
@@ -384,7 +366,6 @@ while getTimeSinceStart() < 4.8 and active do
     RunService.Heartbeat:Wait()
 end
 
--- Cleanup
 setSpin(0)
 cleanup()
 
