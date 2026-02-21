@@ -1,7 +1,5 @@
 --[[
-    BLUE LAPSE - For RightSpinner only
-    Execute this on hiUnineo2 when performing Blue Lapse
-    Animation only plays on main account
+    BLUE LAPSE - for RightSpinner only
 ]]
 
 local Players = game:GetService("Players")
@@ -9,14 +7,13 @@ local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 
--- Get role from global config
+-- get role
 local myRole = _G.ACCOUNT_CONFIG and _G.ACCOUNT_CONFIG[localPlayer.Name]
 if not myRole then
     print("[ERROR] No role defined for " .. localPlayer.Name)
     return
 end
 
--- Only run if this is RightSpinner or Main
 if myRole.role ~= "RightSpinner" and myRole.role ~= "Main" then
     print("[SKIP] Blue Lapse is exclusive to RightSpinner and Main")
     return
@@ -24,7 +21,7 @@ end
 
 print("=== BLUE LAPSE STARTED for " .. myRole.role .. " ===")
 
--- State
+-- state
 local active = true
 local bp, bg = nil, nil
 local spinPhase = 0
@@ -34,18 +31,18 @@ local currentOffset = Vector3.zero
 local frozenY = nil
 local moveStartTime = tick()
 
--- Orbit state
+-- orbit state
 local orbitAngle = 0
 local orbitRadius = 0
 local orbitHeight = 0
 
--- Animation state (only used for main account)
+-- animation state (only used for main account)
 local animTrack = nil
 local blockAnimConn = nil
 local animationPlaying = false
 local animHeartbeatConn = nil
 
--- Anti-fling
+-- anti-fling
 _G.isAlreadyAntiFling = _G.isAlreadyAntiFling or false
 local antiFlingConn = nil
 
@@ -117,12 +114,10 @@ local function cleanupAnimation()
 end
 
 local function playBlueLapseAnimation()
-    -- ONLY play if this is the main account
     if myRole.role ~= "Main" then return false end
     
     print("[MAIN] Playing Blue Lapse animation")
     
-    -- NO DELAY - Play animation immediately
     local char = localPlayer.Character
     if not char then 
         print("[ANIM] No character")
@@ -135,13 +130,11 @@ local function playBlueLapseAnimation()
         return false
     end
     
-    -- Clean up any existing animation
     cleanupAnimation()
     
-    -- Block all other animations
     blockOtherAnimations(humanoid)
     
-    -- Load animation
+    -- load animation
     local anim = Instance.new("Animation")
     anim.AnimationId = _G.BLUE_LAPSE_ANIMATION_ID
     
@@ -158,7 +151,6 @@ local function playBlueLapseAnimation()
     animTrack = track
     animTrack.Looped = false
     
-    -- Stop any other tracks
     local animator = humanoid:FindFirstChildOfClass("Animator")
     if animator then
         for _, otherTrack in pairs(animator:GetPlayingAnimationTracks()) do
@@ -168,7 +160,7 @@ local function playBlueLapseAnimation()
         end
     end
     
-    -- Start playing
+    -- start playing
     pcall(function()
         animTrack:Play()
         animTrack.TimePosition = 0
@@ -177,7 +169,7 @@ local function playBlueLapseAnimation()
     
     print("[MAIN] Animation started at " .. _G.BLUE_LAPSE_SPEED .. "x speed")
     
-    -- Monitor animation speed
+    -- monitor animation speed
     animHeartbeatConn = RunService.Heartbeat:Connect(function()
         if not animTrack or not animTrack.IsPlaying then return end
         
@@ -188,7 +180,7 @@ local function playBlueLapseAnimation()
         end)
     end)
     
-    -- Auto-unblock after animation duration
+    -- auto-unblock after animation duration
     task.spawn(function()
         task.wait(12) -- Blue Lapse duration
         if animationPlaying and humanoid and humanoid.Parent then
@@ -309,10 +301,7 @@ local function updatePosition(mainHead, offset)
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
-        -- This ensures consistent spin speed regardless of how long the script runs
         spinPhase = spinPhase + 0.05
-        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
             spinPhase * spinSpeed * 0.05 * spinAxis.X,
             spinPhase * spinSpeed * 0.05 * spinAxis.Y,
@@ -348,10 +337,7 @@ local function updateOrbitPosition(mainHead, centerOffset, radius, angle, height
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
-        -- This ensures consistent spin speed regardless of how long the script runs
         spinPhase = spinPhase + 0.05
-        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
             spinPhase * spinSpeed * 0.05 * spinAxis.X,
             spinPhase * spinSpeed * 0.05 * spinAxis.Y,
@@ -365,18 +351,15 @@ local function getTimeSinceStart()
 end
 
 -- ========== MAIN EXECUTION ==========
--- PLAY ANIMATION ON MAIN ACCOUNT ONLY (NO DELAY)
 if myRole.role == "Main" then
     playBlueLapseAnimation()
     active = false
     return
 end
 
--- ALT ACCOUNTS - ADD 0.7 SECOND DELAY BEFORE MOVEMENT
-print("[WAIT] Waiting 0.7s for animation to load...")
+print("delay for wait because why not")
 task.wait(0.7)
 
--- RIGHT SPINNER MOVEMENT LOGIC
 local mainPlayer = Players:FindFirstChild(_G.MAIN_USER_NAME)
 if not mainPlayer then print("[ERROR] Main not found") return end
 
@@ -401,20 +384,16 @@ if not myChar then print("[ERROR] Own char missing") return end
 startAntiFling()
 initFlight(getRoot(myChar))
 
--- Reset moveStartTime AFTER the 0.7s delay to ensure proper timing
 moveStartTime = tick()
 
--- BLUE LAPSE LOGIC
--- Phase 1: Initial position (2 seconds) - INCREASED BASE SPIN SPEED
 currentOffset = Vector3.new(-4, 0, -5)
-setSpin(20, Vector3.new(0, 1, 0)) -- Increased from 10 to 20
+setSpin(20, Vector3.new(0, 1, 0)) 
 
 while getTimeSinceStart() < 2 and active do
     updatePosition(mainHead, currentOffset)
     RunService.Heartbeat:Wait()
 end
 
--- Phase 2: Orbiting (5 seconds)
 local centerOffset = Vector3.new(-4, 0, -5)
 local angle = 0
 
@@ -430,7 +409,6 @@ while getTimeSinceStart() < 7 and active do
     RunService.Heartbeat:Wait()
 end
 
--- Instant reset
 setSpin(0)
 cleanup()
 
