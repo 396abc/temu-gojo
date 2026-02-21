@@ -79,4 +79,4 @@ Replace it with the username of the account you want to **control abilities from
 
 Enjoy.
 
-yes i did use chatgpt to make it look better because not bothered this was like 15 minute side project anyway feel free to skid ig you are entitled for ts script
+yes i did use chatgpt to make readme look better because not bothered this was like 15 minute side project anyway feel free to skid ig you are entitled for ts script
