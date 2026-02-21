@@ -8,7 +8,7 @@ local RunService = game:GetService("RunService")
 
 local localPlayer = Players.LocalPlayer
 
--- Get role from global config
+-- get role
 local myRole = _G.ACCOUNT_CONFIG and _G.ACCOUNT_CONFIG[localPlayer.Name]
 if not myRole then
     print("[ERROR] No role defined for " .. localPlayer.Name)
