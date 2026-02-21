@@ -78,5 +78,12 @@ Replace it with the username of the account you want to **control abilities from
 ✅ Once configured, everything runs automatically.
 
 Enjoy.
-
+---
+### 🥀Move Shortcuts
+Hollow Purple: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/hollowpurple.lua"))()
+200% Purple: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/200purple.lua"))()
+Red Reversal: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/redreversal.lua"))()
+Blue Lapse: loadstring(game:HttpGet("https://raw.githubusercontent.com/396abc/temu-gojo/refs/heads/main/bluelapse.lua"))()
+For **`main.lua`** you have to copy the entire thing can't use loadstring because of account settings.
+---
 yes i did use chatgpt to make readme look better because not bothered this was like 15 minute side project anyway feel free to skid ig you are entitled for ts script
