@@ -1,7 +1,6 @@
 --[[
-    200% PURPLE - For all 6 alt accounts
-    Execute this on hiUnineo1-6 when performing 200% Purple
-    Animation only plays on main account at 0.4x speed
+    200% PURPLE - for all 6 alt accounts
+    execute this on accounts 1-6 when doing 200% Purple
 ]]
 
 local Players = game:GetService("Players")
@@ -18,7 +17,7 @@ end
 
 print("=== 200% PURPLE STARTED for " .. myRole.role .. " ===")
 
--- State
+-- state
 local active = true
 local bp, bg = nil, nil
 local spinPhase = 0
@@ -28,17 +27,17 @@ local currentOffset = Vector3.zero
 local frozenY = nil
 local moveStartTime = tick()
 
--- Animation state (only used for main account)
+-- animation shi
 local animTrack = nil
 local blockAnimConn = nil
 local animationPlaying = false
 local animHeartbeatConn = nil
 
--- Anti-fling
+-- anti-fling
 _G.isAlreadyAntiFling = _G.isAlreadyAntiFling or false
 local antiFlingConn = nil
 
--- Noclip for FinalAppear roles
+-- noclip
 local Noclipping = nil
 local noclipActive = false
 
@@ -110,12 +109,11 @@ local function cleanupAnimation()
 end
 
 local function playPurple200Animation()
-    -- ONLY play if this is the main account
+    --  play if this is the main account
     if myRole.role ~= "Main" then return false end
     
     print("[MAIN] Playing 200% Purple animation at 0.4x speed")
     
-    -- NO DELAY - Play animation immediately
     local char = localPlayer.Character
     if not char then 
         print("[ANIM] No character")
@@ -128,13 +126,10 @@ local function playPurple200Animation()
         return false
     end
     
-    -- Clean up any existing animation
     cleanupAnimation()
     
-    -- Block all other animations
     blockOtherAnimations(humanoid)
     
-    -- Load animation
     local anim = Instance.new("Animation")
     anim.AnimationId = _G.ANIMATION_ID
     
@@ -151,7 +146,7 @@ local function playPurple200Animation()
     animTrack = track
     animTrack.Looped = false
     
-    -- Stop any other tracks
+    -- stop any other tracks
     local animator = humanoid:FindFirstChildOfClass("Animator")
     if animator then
         for _, otherTrack in pairs(animator:GetPlayingAnimationTracks()) do
@@ -161,7 +156,7 @@ local function playPurple200Animation()
         end
     end
     
-    -- Start playing
+    -- start playing
     pcall(function()
         animTrack:Play()
         animTrack.TimePosition = 0
@@ -170,7 +165,7 @@ local function playPurple200Animation()
     
     print("[MAIN] Animation started at " .. _G.PURPLE_200_SPEED .. "x speed")
     
-    -- Monitor animation speed
+    -- monitor animation speed
     animHeartbeatConn = RunService.Heartbeat:Connect(function()
         if not animTrack or not animTrack.IsPlaying then return end
         
@@ -181,7 +176,7 @@ local function playPurple200Animation()
         end)
     end)
     
-    -- Auto-unblock after animation duration
+    -- auto-unblock after animation duration
     task.spawn(function()
         task.wait(15) -- 200% Purple duration
         if animationPlaying and humanoid and humanoid.Parent then
@@ -337,10 +332,7 @@ local function updatePosition(mainHead, offset)
     bg.CFrame = CFrame.lookAt(bp.Position, bp.Position + headCF.LookVector)
     
     if spinSpeed > 0 then
-        -- FIXED: Increment spinPhase by a fixed small amount and multiply by spinSpeed
-        -- This ensures consistent spin speed regardless of how long the script runs
         spinPhase = spinPhase + 0.05
-        -- Apply spin with the desired speed multiplier
         bg.CFrame = bg.CFrame * CFrame.Angles(
             spinPhase * spinSpeed * 0.05 * spinAxis.X,
             spinPhase * spinSpeed * 0.05 * spinAxis.Y,
@@ -387,25 +379,21 @@ if not myChar then
     return 
 end
 
--- PLAY ANIMATION ON MAIN ACCOUNT ONLY (NO DELAY)
 if myRole.role == "Main" then
     playPurple200Animation()
     active = false
     return
 end
 
--- ALT ACCOUNTS - ADD 0.7 SECOND DELAY BEFORE MOVEMENT
 print("[WAIT] Waiting 0.7s for animation to load...")
 task.wait(0.7)
 
--- ALT ACCOUNTS MOVEMENT LOGIC
+-- alt movement
 initFlight(getRoot(myChar))
 startAntiFling()
 
--- Reset moveStartTime AFTER the 0.7s delay to ensure proper timing
 moveStartTime = tick()
 
--- LEFT SPINNER (Front Left) - INCREASED BASE SPIN SPEED
 if myRole.role == "LeftSpinner" then
     print("[LEFTSPINNER] Merging to center front")
     currentOffset = Vector3.new(-5, 0, 2)
@@ -430,11 +418,10 @@ if myRole.role == "LeftSpinner" then
     return
 end
 
--- RIGHT SPINNER (Front Right) - INCREASED BASE SPIN SPEED
 if myRole.role == "RightSpinner" then
     print("[RIGHTSPINNER] Merging to center front")
     currentOffset = Vector3.new(5, 0, 2)
-    setSpin(40, Vector3.new(1, 1, 0.8)) -- Increased from 20 to 40
+    setSpin(40, Vector3.new(1, 1, 0.8))
     
     while getTimeSinceStart() < 3 and active do
         local progress = getTimeSinceStart() / 3
@@ -454,12 +441,10 @@ if myRole.role == "RightSpinner" then
     active = false
     return
 end
-
--- BACK LEFT SPINNER - INCREASED BASE SPIN SPEED
 if myRole.role == "BackLeftSpinner" then
     print("[BACKLEFT] Merging to center back")
     currentOffset = Vector3.new(-4, 0, -8)
-    setSpin(40, Vector3.new(1, 1, 0.5)) -- Increased from 20 to 40
+    setSpin(40, Vector3.new(1, 1, 0.5)) 
     
     while getTimeSinceStart() < 3 and active do
         local progress = getTimeSinceStart() / 3
@@ -480,11 +465,10 @@ if myRole.role == "BackLeftSpinner" then
     return
 end
 
--- BACK RIGHT SPINNER - INCREASED BASE SPIN SPEED
 if myRole.role == "BackRightSpinner" then
     print("[BACKRIGHT] Merging to center back")
     currentOffset = Vector3.new(4, 0, -8)
-    setSpin(40, Vector3.new(1, 1, 0.5)) -- Increased from 20 to 40
+    setSpin(40, Vector3.new(1, 1, 0.5)) 
     
     while getTimeSinceStart() < 3 and active do
         local progress = getTimeSinceStart() / 3
@@ -505,11 +489,9 @@ if myRole.role == "BackRightSpinner" then
     return
 end
 
--- BACK FINAL APPEAR (Becomes RIGHT FRONT) - INCREASED BASE SPIN SPEEDS
 if myRole.role == "BackFinalAppear" then
     enableNoclip()
     
-    -- Wait for Phase 1 (accounting for 0.7s delay)
     while getTimeSinceStart() < 3.5 and active do
         RunService.Heartbeat:Wait()
     end
@@ -517,9 +499,9 @@ if myRole.role == "BackFinalAppear" then
     if not active then return end
     
     currentOffset = Vector3.new(0, 0, -8)
-    setSpin(40, Vector3.new(0.5, 1, 0.5)) -- Increased from 20 to 40
+    setSpin(40, Vector3.new(0.5, 1, 0.5)) 
     
-    -- Phase 3: Rise up
+
     local startY = frozenY or mainHead.Position.Y
     
     while getTimeSinceStart() < 5 and active do
@@ -532,7 +514,7 @@ if myRole.role == "BackFinalAppear" then
     
     if not active then return end
     
-    -- Phase 4: Tween to RIGHT FRONT
+
     local startOffset = currentOffset
     local targetOffset = Vector3.new(3, 0, 2)
     
@@ -549,8 +531,8 @@ if myRole.role == "BackFinalAppear" then
     
     if not active then return end
     
-    -- Phase 5: Spin - INCREASED BASE SPIN SPEED
-    setSpin(60, Vector3.new(1, 1, 1)) -- Increased from 30 to 60
+
+    setSpin(60, Vector3.new(1, 1, 1)) 
     
     while getTimeSinceStart() < 9 and active do
         updatePosition(mainHead, currentOffset)
@@ -559,8 +541,8 @@ if myRole.role == "BackFinalAppear" then
     
     if not active then return end
     
-    -- Phase 6: Dash - INCREASED BASE SPIN SPEED
-    setSpin(70, Vector3.new(1, 1, 1)) -- Increased from 35 to 70
+
+    setSpin(70, Vector3.new(1, 1, 1)) 
     local startDashOffset = currentOffset
     local targetDashOffset = Vector3.new(3, 0, 302)
     
@@ -583,11 +565,11 @@ if myRole.role == "BackFinalAppear" then
     return
 end
 
--- FINAL APPEAR (Becomes LEFT FRONT) - INCREASED BASE SPIN SPEEDS
+
 if myRole.role == "FinalAppear" then
     enableNoclip()
     
-    -- Wait for Phase 1 (accounting for 0.7s delay)
+
     while getTimeSinceStart() < 3.5 and active do
         RunService.Heartbeat:Wait()
     end
@@ -595,9 +577,9 @@ if myRole.role == "FinalAppear" then
     if not active then return end
     
     currentOffset = Vector3.new(0, 0, 2)
-    setSpin(40, Vector3.new(0.5, 1, 0.5)) -- Increased from 20 to 40
+    setSpin(40, Vector3.new(0.5, 1, 0.5)) 
     
-    -- Phase 3: Rise up
+
     local startY = frozenY or mainHead.Position.Y
     
     while getTimeSinceStart() < 5 and active do
@@ -610,7 +592,7 @@ if myRole.role == "FinalAppear" then
     
     if not active then return end
     
-    -- Phase 4: Tween to LEFT FRONT
+
     local startOffset = currentOffset
     local targetOffset = Vector3.new(-3, 0, 2)
     
@@ -627,8 +609,8 @@ if myRole.role == "FinalAppear" then
     
     if not active then return end
     
-    -- Phase 5: Spin - INCREASED BASE SPIN SPEED
-    setSpin(60, Vector3.new(1, 1, 1)) -- Increased from 30 to 60
+
+    setSpin(60, Vector3.new(1, 1, 1)) 
     
     while getTimeSinceStart() < 9 and active do
         updatePosition(mainHead, currentOffset)
@@ -636,9 +618,8 @@ if myRole.role == "FinalAppear" then
     end
     
     if not active then return end
-    
-    -- Phase 6: Dash - INCREASED BASE SPIN SPEED
-    setSpin(70, Vector3.new(1, 1, 1)) -- Increased from 35 to 70
+
+    setSpin(70, Vector3.new(1, 1, 1)) 
     local startDashOffset = currentOffset
     local targetDashOffset = Vector3.new(-3, 0, 302)
     
